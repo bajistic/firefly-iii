@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Calendar API Client</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    input, button { margin: 10px 0; padding: 8px; width: 100%; box-sizing: border-box; }
+    #events { white-space: pre-wrap; font-size: 14px; }
+    h2 { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Google Calendar API</h1>
+  <h2>Create Event</h2>
+  <input id="summary" placeholder="Event Summary" /><br>
+  <input id="description" placeholder="Description" /><br>
+  <input id="startDateTime" placeholder="Start (e.g., 2025-05-08T14:00:00Z)" /><br>
+  <input id="endDateTime" placeholder="End (e.g., 2025-05-08T15:00:00Z)" /><br>
+  <button onclick="createEvent()">Create Event</button>
+
+  <h2>List Events</h2>
+  <input id="timeMin" placeholder="Time Min (e.g., 2025-05-08T00:00:00Z)" /><br>
+  <button onclick="listEvents()">List Events</button>
+
+  <h2>Delete Event</h2>
+  <input id="eventId" placeholder="Event ID" /><br>
+  <button onclick="deleteEvent()">Delete Event</button>
+
+  <h2>Response</h2>
+  <div id="events"></div>
+
+  <script>
+    async function createEvent() {
+      const summary = document.getElementById('summary').value;
+      const description = document.getElementById('description').value;
+      const startDateTime = document.getElementById('startDateTime').value;
+      const endDateTime = document.getElementById('endDateTime').value;
+
+      const response = await fetch('/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ summary, description, startDateTime, endDateTime }),
+      });
+      const result = await response.json();
+      document.getElementById('events').textContent = JSON.stringify(result, null, 2);
+    }
+
+    async function listEvents() {
+      const timeMin = document.getElementById('timeMin').value;
+      const response = await fetch(`/events?timeMin=${encodeURIComponent(timeMin)}`);
+      const result = await response.json();
+      document.getElementById('events').textContent = JSON.stringify(result, null, 2);
+    }
+
+    async function deleteEvent() {
+      const eventId = document.getElementById('eventId').value;
+      const response = await fetch(`/events/${eventId}`, { method: 'DELETE' });
+      const result = await response.json();
+      document.getElementById('events').textContent = JSON.stringify(result, null, 2);
+    }
+  </script>
+</body>
+</html>

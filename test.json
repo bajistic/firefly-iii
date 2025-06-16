@@ -1,0 +1,35 @@
+{
+  "success": true,
+  "event": {
+    "kind": "calendar#event",
+    "etag": "\"3493446728703966\"",
+    "id": "nur659q7v8hmnro1egt6l57j90",
+    "status": "confirmed",
+    "htmlLink": "https://www.google.com/calendar/event?eid=bnVyNjU5cTd2OGhtbnJvMWVndDZsNTdqOTAgYmJheWFyYmlsZWdAbQ",
+    "created": "2025-05-08T16:56:04.000Z",
+    "updated": "2025-05-08T16:56:04.351Z",
+    "summary": "Meeting with Bob",
+    "creator": {
+      "email": "bbayarbileg@gmail.com",
+      "self": true
+    },
+    "organizer": {
+      "email": "bbayarbileg@gmail.com",
+      "self": true
+    },
+    "start": {
+      "dateTime": "2025-05-08T23:00:00+02:00",
+      "timeZone": "UTC"
+    },
+    "end": {
+      "dateTime": "2025-05-09T00:00:00+02:00",
+      "timeZone": "UTC"
+    },
+    "iCalUID": "nur659q7v8hmnro1egt6l57j90@google.com",
+    "sequence": 0,
+    "reminders": {
+      "useDefault": true
+    },
+    "eventType": "default"
+  }
+}%

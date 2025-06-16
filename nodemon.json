@@ -1,0 +1,17 @@
+{
+  "watch": [
+    "src/",
+    "your_other_watched_folders/"
+  ],
+  "ext": "js,mjs,json,yaml,gql",
+  "ignore": [
+    "node_modules/",
+    "*.test.js",
+    "token.json",
+    "expenses.db",
+    "expenses.db-journal",
+    "proposed_migrations.log",
+    "uploads/*"
+  ],
+  "exec": "node src/server.js"
+}
