@@ -10,15 +10,22 @@ This is an AI-driven financial assistant with dual database synchronization capa
 - **Primary Database**: MariaDB at `192.168.1.100:3306` (database: `finance`)
   - Custom schema: `transactions`, `items`, `income`, `accounts`
   - Your original data store with 81+ transactions, 187+ items, 1+ income entries
+  - **Single CHF Account**: All transactions use main CHF account with automatic currency conversion
   
 - **Firefly III**: Docker container at `localhost:3001`
   - Professional financial management system
   - Auto-synced with primary database
   - Used for budgeting, reporting, and analysis
 
+### Currency Handling
+- **Single Account Approach**: Uses main CHF account for all payments (EUR, USD automatically converted)
+- **Bank Reconciliation**: Monthly sync with actual bank statement for accurate amounts and fees
+- **Exchange Rate Accuracy**: Eliminates estimation errors by using real bank statement values
+
 ### Key Components
 - **Main Application**: `firefly-iii/` directory (Node.js/Express)
 - **Dual Sync Layer**: `firefly-iii/src/firefly.js` with `createSyncedTransaction()` and `createSyncedIncome()`
+- **Bank Reconciliation**: `firefly-iii/src/bankSync.js` for monthly bank statement synchronization
 - **AI Dispatch**: `firefly-iii/src/server.js` handles natural language processing
 - **Docker Setup**: `docker-compose.yml` for Firefly III instance
 
@@ -35,8 +42,10 @@ This is an AI-driven financial assistant with dual database synchronization capa
 
 #### Transaction Creation
 ```javascript
-// ✅ Correct - uses dual sync
+// ✅ Correct - uses dual sync with bank reconciliation support
 const syncResult = await createSyncedTransaction(shop, total, currency, date, receiptPath, items);
+// Records original currency (e.g., €25) and estimates CHF (~25.38)
+// Actual bank amount will be reconciled monthly
 
 // ❌ Avoid - only updates one database  
 const result = await dbRunAsync('INSERT INTO transactions...');
@@ -65,11 +74,13 @@ if (syncResult.success) {
 │   ├── src/
 │   │   ├── server.js               # Main AI dispatch & Express server
 │   │   ├── firefly.js              # Dual database sync layer ⭐
+│   │   ├── bankSync.js             # Bank statement reconciliation system ⭐
 │   │   ├── db.js                   # Database connections
 │   │   ├── telegram.js             # Telegram bot for receipt processing
 │   │   └── firefly-sync.js         # Sync helper functions
 ├── docker-compose.yml              # Firefly III Docker setup
 ├── migrate_finance_to_firefly.js   # One-time migration script
+├── BANK_RECONCILIATION.md          # Bank reconciliation usage guide
 └── test_sync.js                    # Dual sync testing
 ```
 
@@ -116,6 +127,12 @@ GOOGLE_CLIENT_SECRET=...
 3. Modify server dispatch logic in `server.js`
 4. Test with both databases running
 5. Update documentation
+
+### Monthly Bank Reconciliation
+1. Download bank statement CSV from your bank
+2. Run: `node firefly-iii/src/bankSync.js statement.csv 11 2024`
+3. Review reconciliation report in `reports/` directory
+4. Check for unmatched transactions and resolve manually
 
 ### Debugging Sync Issues
 1. Check logs: `tail -f firefly-iii/error.log`
