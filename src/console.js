@@ -23,7 +23,15 @@ const stripAnsiRegex = /\u001b\[[0-9;]*m/g;
 // Helper to write log lines to file
 function writeToFile(level, args) {
   const timestamp = new Date().toISOString();
-  const message = args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ');
+  const message = args.map(arg => {
+    if (typeof arg === 'string') {
+      return arg;
+    } else if (arg instanceof Error) {
+      return `${arg.name}: ${arg.message}\n${arg.stack}`;
+    } else {
+      return JSON.stringify(arg);
+    }
+  }).join(' ');
   const plain = message.replace(stripAnsiRegex, '');
   const line = `${timestamp} [${level}] ${plain}\n`;
   fs.appendFile(logFilePath, line, err => {

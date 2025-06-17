@@ -47,9 +47,10 @@ const api = fireflyEnabled
     })
   : null;
 
+
 /**
- * Create a transaction directly in Firefly III database
- * This function now works with the native Firefly III schema
+ * Create a transaction via Firefly III API
+ * This uses the official API instead of direct database access
  */
 async function createFireflyTransaction(shop, amount, currency = 'EUR', date = null, receiptPath = null) {
   if (!fireflyEnabled) {
@@ -58,76 +59,84 @@ async function createFireflyTransaction(shop, amount, currency = 'EUR', date = n
   }
 
   try {
-    // Get user ID (assuming first user)
-    const users = await dbAllAsync('SELECT id FROM users LIMIT 1');
-    if (!users.length) throw new Error('No user found in Firefly III database');
-    const userId = users[0].id;
-
-    // Get user group ID
-    const memberships = await dbAllAsync('SELECT user_group_id FROM group_memberships WHERE user_id = ?', [userId]);
-    if (!memberships.length) throw new Error('User has no group membership');
-    const userGroupId = memberships[0].user_group_id;
-
-    // Get default accounts
-    const assetAccounts = await dbAllAsync('SELECT id FROM accounts WHERE user_id = ? AND account_type_id = 3 LIMIT 1', [userId]);
-    const expenseAccounts = await dbAllAsync('SELECT id FROM accounts WHERE user_id = ? AND account_type_id = 4 LIMIT 1', [userId]);
-    
-    if (!assetAccounts.length || !expenseAccounts.length) {
-      throw new Error('Default accounts not found');
-    }
-
-    const assetAccountId = assetAccounts[0].id;
-    const expenseAccountId = expenseAccounts[0].id;
-
-    // Determine currency ID
-    let currencyId = 1; // EUR
-    if (currency === 'CHF') currencyId = 27;
-    if (currency === 'USD') currencyId = 12;
-
     const transactionDate = date || new Date().toISOString().split('T')[0];
-
-    // Create transaction group
-    const groupResult = await dbRunAsync(`
-      INSERT INTO transaction_groups (created_at, updated_at, user_id, title)
-      VALUES (NOW(), NOW(), ?, ?)
-    `, [userId, `${shop} - ${transactionDate}`]);
-
-    // Create transaction journal
-    const journalResult = await dbRunAsync(`
-      INSERT INTO transaction_journals (
-        created_at, updated_at, user_id, user_group_id, transaction_type_id,
-        transaction_group_id, transaction_currency_id, description, date,
-        interest_date, book_date, process_date, \`order\`, tag_count, encrypted, completed
-      ) VALUES (NOW(), NOW(), ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, 0, 0, 1, 1)
-    `, [userId, userGroupId, groupResult.lastID, currencyId, `Purchase at ${shop}`, transactionDate, transactionDate, transactionDate, transactionDate]);
-
-    // Create withdrawal (from asset account)
-    await dbRunAsync(`
-      INSERT INTO transactions (
-        created_at, updated_at, transaction_journal_id, account_id, amount,
-        description, identifier
-      ) VALUES (NOW(), NOW(), ?, ?, ?, ?, 0)
-    `, [journalResult.lastID, assetAccountId, -Math.abs(amount), `Withdrawal: ${shop}`]);
-
-    // Create expense (to expense account)
-    await dbRunAsync(`
-      INSERT INTO transactions (
-        created_at, updated_at, transaction_journal_id, account_id, amount,
-        description, identifier
-      ) VALUES (NOW(), NOW(), ?, ?, ?, ?, 1)
-    `, [journalResult.lastID, expenseAccountId, Math.abs(amount), `Expense: ${shop}`]);
-
-    // Add receipt metadata if provided
-    if (receiptPath) {
-      await dbRunAsync(`
-        INSERT INTO journal_meta (
-          created_at, updated_at, transaction_journal_id, name, data, hash
-        ) VALUES (NOW(), NOW(), ?, 'receipt_path', ?, ?)
-      `, [journalResult.lastID, receiptPath, crypto.createHash('md5').update(receiptPath).digest('hex')]);
+    
+    // Check for duplicate transactions in Firefly III (if available)
+    try {
+      const { data: existingTransactions } = await api.get(`/transactions?start=${transactionDate}&end=${transactionDate}`);
+      const duplicate = existingTransactions.data.find(transaction => {
+        const txn = transaction.attributes.transactions[0];
+        return txn.description.includes(shop) && 
+               Math.abs(parseFloat(txn.amount)) === Math.abs(amount) &&
+               txn.currency_code === currency;
+      });
+      
+      if (duplicate) {
+        console.log(`⚠️ Duplicate Firefly transaction detected: ${shop} - ${amount} ${currency} on ${transactionDate}`);
+        return duplicate.id;
+      }
+    } catch (connError) {
+      if (connError.response?.status === 302 || connError.message.includes('login')) {
+        console.warn(`⚠️ Firefly III authentication failed - token invalid or expired`);
+        return null;
+      }
+      console.warn(`⚠️ Unable to check for Firefly duplicates (Firefly III unavailable): ${connError.message}`);
+    }
+    
+    // Get accounts to use for the transaction
+    try {
+      var { data: accounts } = await api.get('/accounts');
+    } catch (authError) {
+      if (authError.response?.status === 302 || authError.message.includes('login')) {
+        console.warn(`⚠️ Firefly III authentication failed - skipping Firefly sync`);
+        return null;
+      }
+      throw authError;
+    }
+    const assetAccount = accounts.data.find(acc => acc.attributes.type === 'asset');
+    const expenseAccount = accounts.data.find(acc => acc.attributes.type === 'expense' && acc.attributes.name.toLowerCase().includes('general'));
+    
+    if (!assetAccount) {
+      throw new Error('No asset account found');
+    }
+    
+    // Create expense account if it doesn't exist
+    let expenseAccountId;
+    if (!expenseAccount) {
+      const { data: newAccount } = await api.post('/accounts', {
+        name: shop,
+        type: 'expense',
+        currency_code: currency
+      });
+      expenseAccountId = newAccount.data.id;
+    } else {
+      expenseAccountId = expenseAccount.id;
     }
 
+    // Create the transaction
+    const transactionData = {
+      error_if_duplicate_hash: false,
+      apply_rules: true,
+      fire_webhooks: true,
+      group_title: `Purchase at ${shop}`,
+      transactions: [
+        {
+          type: 'withdrawal',
+          date: transactionDate,
+          amount: Math.abs(amount).toString(),
+          description: `Purchase at ${shop}`,
+          source_id: assetAccount.id,
+          destination_id: expenseAccountId,
+          currency_code: currency,
+          notes: receiptPath ? `Receipt: ${receiptPath}` : undefined
+        }
+      ]
+    };
+
+    const { data: result } = await api.post('/transactions', transactionData);
+    
     console.log(`✅ Created Firefly transaction: ${shop} - ${amount} ${currency}`);
-    return journalResult.lastID;
+    return result.data.id;
 
   } catch (error) {
     console.error('❌ Error creating Firefly transaction:', error);
@@ -203,8 +212,26 @@ async function createSyncedTransaction(shop, amount, currency = 'EUR', date = nu
   const time = new Date().toTimeString().split(' ')[0];
   
   try {
-    // 1. Create in original MariaDB database
     const originalDb = await getOriginalDbConnection();
+    
+    // Check for duplicate transactions
+    const [existing] = await originalDb.execute(`
+      SELECT id FROM transactions 
+      WHERE shop = ? AND date = ? AND total = ? AND currency = ?
+      LIMIT 1
+    `, [shop, transactionDate, amount, currency]);
+    
+    if (existing.length > 0) {
+      console.log(`⚠️ Duplicate transaction detected: ${shop} - ${amount} ${currency} on ${transactionDate}`);
+      return {
+        originalId: existing[0].id,
+        fireflyId: null,
+        success: true,
+        duplicate: true
+      };
+    }
+    
+    // 1. Create in original MariaDB database
     const [result] = await originalDb.execute(`
       INSERT INTO transactions (shop, date, time, total, currency, receipt_path, account_id)
       VALUES (?, ?, ?, ?, ?, ?, ?)

@@ -124,6 +124,7 @@ function getTailscaleIP() {
  *                            all DDL statements, separated by two newlines.
  */
 async function getDatabaseSchemaDDL(dbInstance) {
+  const { DB_NAME } = process.env;
   const [tables] = await dbInstance.query(
     "SELECT table_name FROM information_schema.tables WHERE table_schema = ?",
     [DB_NAME]
