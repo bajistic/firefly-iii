@@ -181,6 +181,94 @@ app.get('/status', (req, res) => {
     db_schema_loaded: !CURRENT_DB_SCHEMA.startsWith("Error") && CURRENT_DB_SCHEMA !== "Schema not yet loaded."
   });
 });
+
+// Dashboard routes
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/api/dashboard-data', async (req, res) => {
+  try {
+    // Get transactions with items
+    const transactions = await dbAllAsync(`
+      SELECT 
+        t.id,
+        t.shop,
+        t.date,
+        t.time,
+        t.total,
+        t.currency,
+        t.receipt_path
+      FROM transactions t
+      ORDER BY t.date DESC, t.time DESC
+      LIMIT 100
+    `);
+
+    // Get items for each transaction
+    for (const transaction of transactions) {
+      const items = await dbAllAsync(`
+        SELECT name, quantity, price, category
+        FROM items
+        WHERE transaction_id = ?
+      `, [transaction.id]);
+      transaction.items = items;
+    }
+
+    // Calculate summary statistics
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const monthTransactions = transactions.filter(t => new Date(t.date) >= startOfMonth);
+    const weekTransactions = transactions.filter(t => new Date(t.date) >= startOfWeek);
+    const lastMonthTransactions = transactions.filter(t => {
+      const date = new Date(t.date);
+      return date >= lastMonth && date <= endOfLastMonth;
+    });
+
+    const monthTotal = monthTransactions.reduce((sum, t) => sum + parseFloat(t.total), 0);
+    const weekTotal = weekTransactions.reduce((sum, t) => sum + parseFloat(t.total), 0);
+    const lastMonthTotal = lastMonthTransactions.reduce((sum, t) => sum + parseFloat(t.total), 0);
+    const avgTransaction = transactions.length > 0 ? transactions.reduce((sum, t) => sum + parseFloat(t.total), 0) / transactions.length : 0;
+
+    const monthChange = lastMonthTotal > 0 ? ((monthTotal - lastMonthTotal) / lastMonthTotal * 100) : 0;
+
+    // Get category data for chart
+    const categoryData = {};
+    transactions.forEach(transaction => {
+      transaction.items.forEach(item => {
+        const category = item.category || 'other';
+        categoryData[category] = (categoryData[category] || 0) + parseFloat(item.price || 0);
+      });
+    });
+
+    const summary = {
+      monthTotal,
+      weekTotal,
+      avgTransaction,
+      totalTransactions: transactions.length,
+      monthChange: Math.round(monthChange * 100) / 100
+    };
+
+    const chartData = {
+      labels: Object.keys(categoryData),
+      data: Object.values(categoryData)
+    };
+
+    res.json({
+      transactions,
+      summary,
+      chartData
+    });
+
+  } catch (error) {
+    console.error('Dashboard data error:', error);
+    res.status(500).json({ error: 'Failed to load dashboard data' });
+  }
+});
 // Firefly webhook endpoint for two-way sync
 app.post('/webhook/firefly', express.raw({ type: 'application/json' }), async (req, res) => {
   const signature = req.header('X-Hook-Signature') || req.header('X-Firefly-Signature');
