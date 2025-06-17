@@ -33,6 +33,11 @@ const {
   createSyncedTransaction,
   createSyncedIncome,
 } = require('./firefly');
+const {
+  parseBankStatement,
+  matchTransactions,
+  applyReconciliation
+} = require('./reconciliation');
 const multer = require('multer');
 const sharp = require('sharp');
 const storage = multer.diskStorage({
@@ -267,6 +272,108 @@ app.get('/api/dashboard-data', async (req, res) => {
   } catch (error) {
     console.error('Dashboard data error:', error);
     res.status(500).json({ error: 'Failed to load dashboard data' });
+  }
+});
+
+// Reconciliation routes
+app.get('/reconciliation', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'reconciliation.html'));
+});
+
+// Upload and process bank statement
+const statementUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, 'uploads/statements/'),
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  }),
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF files are allowed'), false);
+    }
+  },
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
+
+app.post('/api/reconcile-statement', statementUpload.single('statement'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No PDF file uploaded' });
+    }
+
+    console.log(`Processing bank statement: ${req.file.filename}`);
+
+    // Parse bank statement PDF
+    const parseResult = await parseBankStatement(req.file.path);
+    
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        error: 'Failed to parse PDF', 
+        details: parseResult.error 
+      });
+    }
+
+    console.log(`Extracted ${parseResult.transactions.length} transactions from PDF`);
+
+    // Match transactions with database
+    const matchResult = await matchTransactions(parseResult.transactions);
+
+    console.log(`Matching results: ${matchResult.summary.matched} matched, ${matchResult.summary.discrepancies} discrepancies, ${matchResult.summary.unmatched} unmatched`);
+
+    // Add metadata
+    const result = {
+      ...matchResult,
+      statementInfo: {
+        filename: req.file.originalname,
+        uploadDate: new Date().toISOString(),
+        pages: parseResult.metadata?.pages || 'Unknown'
+      }
+    };
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('Reconciliation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to process bank statement', 
+      details: error.message 
+    });
+  }
+});
+
+// Apply reconciliation corrections
+app.post('/api/apply-reconciliation', async (req, res) => {
+  try {
+    const { changes } = req.body;
+    
+    if (!changes || !Array.isArray(changes)) {
+      return res.status(400).json({ error: 'Invalid changes data' });
+    }
+
+    console.log(`Applying ${changes.length} reconciliation changes`);
+
+    const results = await applyReconciliation('manual', changes);
+    
+    const successful = results.filter(r => r.success);
+    const failed = results.filter(r => !r.success);
+
+    console.log(`Applied ${successful.length}/${results.length} changes successfully`);
+
+    res.json({
+      success: failed.length === 0,
+      applied: successful.length,
+      failed: failed.length,
+      results: successful,
+      errors: failed
+    });
+
+  } catch (error) {
+    console.error('Apply reconciliation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to apply changes', 
+      details: error.message 
+    });
   }
 });
 // Firefly webhook endpoint for two-way sync

@@ -1,295 +1,307 @@
-# AI Financial Assistant with Dual Database Sync
+# 💰 AI Finance Assistant
 
-This repository implements an AI-driven assistant that handles multiple tasks via natural language commands, including:
-- Scheduling Google Calendar events
-- Creating Things (macOS) to-do items  
-- Generating cover letters in Google Docs from a local dossier
-- **Recording transactions with automatic dual database sync (MariaDB + Firefly III)**
-- Adding income entries and managing accounts
-- Processing receipts with OCR and item extraction
-- Fallback general responses
+A comprehensive personal finance management system with receipt scanning, detailed expense tracking, AI-powered transaction processing, and bank statement reconciliation.
 
-The assistant now features **seamless dual database synchronization**, automatically maintaining data consistency between your original MariaDB database and Firefly III for comprehensive financial management.
+## ✨ Features
 
-## 🚀 Key Features
+### 🤖 AI-Powered Receipt Processing
+- **Automatic receipt scanning** via Telegram or web interface
+- **Intelligent text extraction** from images (HEIC, JPG, PNG, PDF)
+- **Item-level categorization** with quantity and price tracking
+- **Multi-currency support** (CHF, EUR, USD) with automatic conversion
+- **Smart duplicate detection** to prevent double entries
 
-- **Natural-Language Interface**: One `/ai/natural` endpoint accepts free-text commands (and optional receipt images)
-- **Dual Database Sync**: Automatically syncs financial data to both MariaDB and Firefly III
-- **Calendar Integration**: Create, list, and delete events via Google Calendar API
-- **To-Do Integration**: Add tasks to Things app via URL schemes on macOS
-- **Cover Letter Generation**: Copy and populate Google Docs templates
-- **Advanced Receipt Processing**: Parse receipts (JPEG/HEIC) to extract shop, date/time, total, line items
-- **Multi-Currency Support**: Handle EUR, CHF, USD transactions
-- **Firefly III Integration**: Full compatibility with Firefly III for budgeting and financial planning
-- **Telegram Bot Integration**: Process receipts and commands via Telegram
-- **Robust Validation**: JSON Schema and Zod schemas ensure data integrity
+### 📊 Custom Finance Dashboard
+- **Real-time spending analytics** with category breakdowns
+- **Interactive transaction lists** with expandable item details
+- **Monthly/weekly summaries** with trend analysis
+- **Beautiful charts** powered by Chart.js
+- **Responsive design** optimized for web and iOS Safari
+- **Dark mode support** following system preferences
 
-## 🗄️ Database Architecture
+### 🏦 Bank Statement Reconciliation
+- **PDF bank statement parsing** with automatic transaction extraction
+- **Intelligent transaction matching** using date, amount, and description similarity
+- **Discrepancy detection** for amounts, currencies, and dates
+- **Interactive reconciliation interface** with approve/edit/ignore options
+- **Automatic corrections** for exchange rates and processing fees
+- **Batch processing** for monthly statement uploads
 
-### Original MariaDB Database
-- **Host**: `192.168.1.100:3306`
-- **Database**: `finance` 
-- **Tables**: `transactions`, `items`, `income`, `accounts`
-- **Purpose**: Your primary data store with custom schema
+### 🌐 Multi-Platform Access
+- **Web Dashboard**: Full-featured interface at `http://your-tailscale-ip:3000/dashboard`
+- **Telegram Bot**: Instant receipt scanning and queries via @your_bot
+- **iOS/Mobile**: Touch-optimized interface via Tailscale
+- **API Access**: RESTful endpoints for custom integrations
 
-### Firefly III (Docker)
-- **URL**: `http://localhost:3001`
-- **Purpose**: Professional financial management with budgets, reports, and analysis
-- **Database**: Separate MariaDB container with full Firefly III schema
+### 🔧 Technical Features
+- **Simple Database Schema**: Transactions, items, income, accounts tables
+- **Multi-currency handling** with approximate exchange rates
+- **Receipt storage** with path tracking for audit trails
+- **Telegram integration** for notifications and interactions
+- **Docker support** for easy deployment
+- **Security**: Tailscale VPN integration for secure remote access
 
-### Automatic Sync
-All financial transactions are automatically synchronized between both systems:
-- **Create Transaction** → Saved to both MariaDB and Firefly III
-- **Add Income** → Synchronized across both databases  
-- **Account Management** → Consistent across systems
-- **Receipt Processing** → Item details preserved in both
+## 🚀 Quick Start
 
-## 📁 Repository Layout
+### Prerequisites
+- Node.js 18+
+- MariaDB/MySQL database
+- Tailscale account (for remote access)
+- Telegram Bot Token (optional)
 
-```
-├── firefly-iii/                    # Your main AI assistant application
-│   ├── src/
-│   │   ├── server.js               # Express server & main AI dispatch logic
-│   │   ├── firefly.js              # Dual database sync layer
-│   │   ├── auth.js                 # Google OAuth2 + token refresh
-│   │   ├── calendar.js             # Google Calendar API wrappers
-│   │   ├── telegram.js             # Telegram bot integration
-│   │   ├── db.js                   # Database connection management
-│   │   └── firefly-sync.js         # Sync layer helper functions
-│   └── package.json
-├── docker-compose.yml              # Firefly III Docker setup
-├── .env.firefly                    # Firefly III configuration
-├── migrate_finance_to_firefly.js   # Migration script for existing data
-├── test_sync.js                    # Dual sync testing script
-├── MIGRATION_GUIDE.md              # Detailed migration instructions
-└── uploads/                        # Receipt images
-```
+### Installation
 
-## 🔧 Prerequisites
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd ai-finance-assistant
+   ```
 
-- **Node.js** (v16+) and npm
-- **Docker** and Docker Compose
-- **MariaDB** server (for your original database)
-- **Google Cloud project** with OAuth 2.0 credentials
-  1. Enable Calendar, Docs, and Drive APIs
-  2. Download `credentials.json` and place at repo root
-- **OpenAI API key** (v4+ access)
-- **Telegram Bot Token** (optional, for Telegram integration)
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-## ⚙️ Environment Variables
+3. **Set up database**
+   ```bash
+   # Create the finance database
+   docker exec jarvis-db-1 mariadb -u firefly -p'secret_firefly_password' -e "CREATE DATABASE IF NOT EXISTS finance;"
+   
+   # Initialize tables
+   node src/init-db.js
+   ```
 
-Create a `.env` file at the project root:
+4. **Configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
 
-```bash
-# AI & Server
-OPENAI_API_KEY=sk-...(your key)...
+5. **Start the application**
+   ```bash
+   npm start
+   ```
+
+### Environment Variables
+
+```env
+# Server Configuration
 PORT=3000
-TAILSCALE_IP=100.x.y.z
+TAILSCALE_IP=your.tailscale.ip
 
-# Original Database
-DB_HOST=192.168.1.100
-DB_PORT=3306
-DB_USER=bayarbileg
-DB_PASSWORD=your_password
-DB_NAME=firefly_iii
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=8083
+DB_USER=firefly
+DB_PASSWORD=secret_firefly_password
+DB_NAME=finance
 
-# Firefly III Integration (automatically configured)
-FIREFLY_URL=http://localhost:3001
-FIREFLY_TOKEN=your_firefly_token
-
-# Telegram (optional)
+# Telegram Bot (Optional)
 TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_ADMIN_CHAT_ID=your_chat_id
 
-# Google APIs
+# Google Services (Optional)
 GOOGLE_CLIENT_ID=your_client_id
 GOOGLE_CLIENT_SECRET=your_client_secret
+
+# OpenAI API
+OPENAI_API_KEY=your_openai_key
 ```
 
-## 🚀 Setup & Initialization
+## 📱 Usage
 
-### 1. Install Dependencies
+### Dashboard Access
+- **Web**: `http://your-tailscale-ip:3000/dashboard`
+- **Reconciliation**: `http://your-tailscale-ip:3000/reconciliation`
+- **Mobile**: Same URLs work perfectly on iOS via Tailscale
+
+### Receipt Scanning
+
+#### Via Telegram
+1. Send a photo of your receipt to your bot
+2. AI automatically extracts items, prices, and categories
+3. Transaction is saved with full itemization
+4. Get instant confirmation with transaction details
+
+#### Via Web Interface
+1. Go to `http://your-tailscale-ip:3000`
+2. Upload receipt image or PDF
+3. AI processes and categorizes items
+4. Review and confirm transaction details
+
+### Bank Statement Reconciliation
+
+1. **Upload Statement**
+   - Go to Reconciliation page
+   - Drag & drop or select your monthly PDF bank statement
+   - System automatically parses transactions
+
+2. **Review Matches**
+   - **Perfect Matches**: Automatically approved
+   - **Discrepancies**: Review and approve corrections for exchange rates, fees
+   - **Unmatched**: Create new transactions or ignore
+
+3. **Apply Changes**
+   - Review all proposed changes
+   - Click "Apply All Approved Changes"
+   - Database is updated with correct amounts and new transactions
+
+### API Usage
+
+#### Create Transaction
 ```bash
-cd firefly-iii
-npm install
+curl -X POST http://your-ip:3000/ai/natural \
+  -H "Content-Type: application/json" \
+  -d '{"command": "Add expense: Migros - 45.50 CHF for groceries"}'
 ```
 
-### 2. Start Firefly III (Docker)
+#### Get Dashboard Data
 ```bash
-# From project root
-sudo docker compose up -d
+curl http://your-ip:3000/api/dashboard-data
 ```
 
-### 3. Configure Firefly III
-1. Visit `http://localhost:3001`
-2. Complete registration/setup
-3. Go to Options → Profile → OAuth
-4. Create Personal Access Token
-5. Update `FIREFLY_TOKEN` in `.env`
-
-### 4. Migrate Existing Data (Optional)
+#### Upload Receipt
 ```bash
-# Migrate your existing finance data to Firefly III
-node migrate_finance_to_firefly.js
+curl -X POST http://your-ip:3000/ai/natural \
+  -F "image=@receipt.jpg" \
+  -F "command=Process this receipt"
 ```
 
-### 5. Test Dual Sync
+## 🏗️ Architecture
+
+### Database Schema
+```sql
+-- Core transaction storage
+CREATE TABLE transactions (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  shop TEXT,
+  date DATE NOT NULL,
+  time TIME,
+  total DECIMAL(10,2),
+  currency VARCHAR(3) DEFAULT 'CHF',
+  receipt_path TEXT,
+  account_id INT
+);
+
+-- Detailed item breakdown
+CREATE TABLE items (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  transaction_id INT NOT NULL,
+  name TEXT NOT NULL,
+  quantity INT DEFAULT 1,
+  price DECIMAL(10,2),
+  category VARCHAR(50),
+  FOREIGN KEY (transaction_id) REFERENCES transactions(id)
+);
+
+-- Income tracking
+CREATE TABLE income (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  type TEXT NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  date DATE NOT NULL,
+  description TEXT,
+  account_id INT
+);
+
+-- Account management
+CREATE TABLE accounts (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  type TEXT NOT NULL,
+  balance DECIMAL(10,2) DEFAULT 0.0
+);
+```
+
+### AI Processing Pipeline
+1. **Image/Text Input** → OCR/Text extraction
+2. **AI Analysis** → OpenAI GPT-4 processes content
+3. **Data Extraction** → Structured JSON with items, prices, categories
+4. **Validation** → Amount verification and duplicate checking
+5. **Storage** → Database insertion with full audit trail
+
+### Reconciliation Algorithm
+1. **PDF Parsing** → Extract bank transactions with regex patterns
+2. **Fuzzy Matching** → Score-based matching using:
+   - Date proximity (±7 days)
+   - Amount similarity (exact or with fees)
+   - Description similarity (Levenshtein distance)
+3. **Discrepancy Detection** → Flag differences in amount, currency, date
+4. **User Review** → Interactive approval/correction interface
+5. **Batch Application** → Apply all approved changes atomically
+
+## 🔒 Security
+
+- **VPN Access**: All endpoints accessible only via Tailscale
+- **Input Validation**: All user inputs sanitized and validated
+- **File Upload Limits**: PDF size limits and type checking
+- **Database Security**: Parameterized queries prevent SQL injection
+- **No Public Exposure**: Server binds to private interfaces only
+
+## 🛠️ Development
+
+### Adding New Features
+1. Create feature branch from `main`
+2. Add functionality with tests
+3. Update documentation
+4. Submit pull request
+
+### Database Migrations
 ```bash
-# Verify both databases sync correctly  
-node test_sync.js
+# Add new columns/tables
+node src/migrations/add_new_feature.js
+
+# Always backup before migrations
+mysqldump finance > backup_$(date +%Y%m%d).sql
 ```
 
-### 6. Start AI Assistant
+### Testing Bank Statement Parsing
 ```bash
-cd firefly-iii
-npm run dev  # Development with auto-restart
-# OR
-npm start    # Production
+# Test with sample PDF
+node -e "
+const { parseBankStatement } = require('./src/reconciliation');
+parseBankStatement('./test-statement.pdf').then(console.log);
+"
 ```
 
-## 🤖 API Usage
+## 📈 Monitoring
 
-### Core Endpoint: `/ai/natural`
+### Telegram Notifications
+- Transaction confirmations
+- Error alerts
+- Daily/weekly summaries
+- Reconciliation results
 
-**Minimal Natural Language Interface** - No changes to existing usage!
-
+### Log Analysis
 ```bash
-# Process receipt
-curl -F "command=Track my receipt from Migros" \
-     -F "receipt=@receipt.jpg" \
-     http://localhost:3000/ai/natural
+# View recent activity
+tail -f error.log | grep -E "(Created|Error|Reconciliation)"
 
-# Add income  
-curl -F "command=Add salary of 3000 CHF for December" \
-     http://localhost:3000/ai/natural
-
-# Record expense
-curl -F "command=Spent 25.50 EUR at restaurant" \
-     http://localhost:3000/ai/natural
+# Check API usage
+grep "POST /ai/natural" error.log | wc -l
 ```
-
-**Response** (now includes dual sync confirmation):
-```json
-{
-  "message": "✅ Added transaction for Migros on 2025-06-17 in CHF for total of 45.50 CHF. Synced to both databases (Original ID: 123, Firefly ID: 456)"
-}
-```
-
-### Supported Commands
-- **Transactions**: `"Track receipt"`, `"Add expense"`, `"Record purchase"`
-- **Income**: `"Add salary"`, `"Record income"`, `"Got paid"`  
-- **Calendar**: `"Schedule meeting"`, `"Create event"`
-- **Documents**: `"Generate cover letter"`
-- **General**: Any other command gets an AI response
-
-## 🔄 Dual Database Sync
-
-### How It Works
-1. **AI processes** your natural language command
-2. **Extracts** financial data (shop, amount, items, etc.)
-3. **Creates** transaction in your original MariaDB database
-4. **Automatically syncs** to Firefly III via native database integration
-5. **Links** records with cross-references for consistency
-6. **Reports** success with both database IDs
-
-### What Gets Synced
-- ✅ **Transactions** with full item details
-- ✅ **Income entries** 
-- ✅ **Multi-currency support** (EUR, CHF, USD)
-- ✅ **Receipt metadata** and file paths
-- ✅ **Categories and tags** from item analysis
-- ✅ **Account relationships**
-
-### Data Integrity
-- **Atomic operations**: Both databases updated or neither
-- **Error handling**: Failed syncs don't leave partial data
-- **Backup preservation**: Original data always maintained
-- **Cross-references**: Records linked between systems
-
-## 🏦 Financial Management
-
-### Your Original Database
-- **Custom schema** tailored to your needs
-- **Direct SQL access** for custom queries
-- **Historical data** preservation
-- **Backup and migration** control
-
-### Firefly III Features  
-- **Professional budgeting** with categories and limits
-- **Advanced reporting** and charts
-- **Rule-based automation** for transactions
-- **Bill management** and recurring transactions
-- **Multi-currency** support with exchange rates
-- **Data export** and backup tools
-
-## 📱 Telegram Integration
-
-Process receipts directly through Telegram:
-
-1. Send receipt image to your bot
-2. Add caption: `"Track this receipt"`
-3. AI processes image and extracts items
-4. Automatically syncs to both databases
-5. Receive confirmation with transaction details
-
-## 🧪 Testing & Verification
-
-### Test Dual Sync
-```bash
-node test_sync.js
-```
-
-### Verify Data Consistency
-- Check original MariaDB: `SELECT * FROM transactions ORDER BY id DESC LIMIT 5;`
-- Check Firefly III: Visit `http://localhost:3001/transactions`
-- Compare record counts and amounts
-
-### Debug Issues
-- Check logs: `tail -f firefly-iii/error.log`
-- Test individual components: `node test_integration.js`
-- Verify database connections in `.env`
-
-## 🛠️ System Components
-
-| Component | Responsibility |
-|-----------|----------------|
-| `server.js` | Main AI dispatch, Express setup, request handling |
-| `firefly.js` | Dual database sync layer, transaction management |
-| `db.js` | Database connections and query helpers |
-| `telegram.js` | Telegram bot integration for receipt processing |
-| `auth.js` | Google OAuth2 flows and token management |
-| `prompts.js` | OpenAI system prompts and function calling |
-| `schemas.js` | Data validation and AI function schemas |
-
-## 📊 Data Migration
-
-For migrating existing financial data, see `MIGRATION_GUIDE.md` for detailed instructions on safely transferring your transaction history to the new dual-sync system.
-
-## 🔒 Security & Privacy
-
-- **Local processing**: Receipt OCR and data extraction happens locally
-- **Secure connections**: All API calls use HTTPS/TLS
-- **Token management**: OAuth tokens securely stored and refreshed
-- **Database isolation**: Original and Firefly databases remain separate
-- **No external data sharing**: Financial data stays within your infrastructure
-
-## 🚀 Production Deployment
-
-- Configure proper database backups for both systems
-- Set up monitoring for Docker containers
-- Use environment variables for all secrets
-- Configure reverse proxy for HTTPS access
-- Set up log rotation and monitoring
 
 ## 🤝 Contributing
 
-Feel free to open issues or pull requests for enhancements or bug fixes. When contributing:
-
-1. Test dual database sync functionality
-2. Ensure backward compatibility with existing data
-3. Update documentation for new features
-4. Follow existing code style and patterns
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-This project is released under the MIT License.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- **OpenAI** for GPT-4 API
+- **Chart.js** for beautiful visualizations
+- **Telegram** for bot platform
+- **Tailscale** for secure networking
+- **MariaDB** for reliable data storage
+
+---
+
+**Made with ❤️ for personal finance management**

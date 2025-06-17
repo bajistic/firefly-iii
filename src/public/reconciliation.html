@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Bank Reconciliation">
+    <title>Bank Statement Reconciliation</title>
+    <style>
+        :root {
+            --primary: #007AFF;
+            --secondary: #5856D6;
+            --success: #34C759;
+            --warning: #FF9500;
+            --danger: #FF3B30;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --text-primary: #000000;
+            --text-secondary: #6c757d;
+            --border: #dee2e6;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #1c1c1e;
+                --bg-secondary: #2c2c2e;
+                --text-primary: #ffffff;
+                --text-secondary: #8e8e93;
+                --border: #38383a;
+                --shadow: 0 2px 10px rgba(0,0,0,0.3);
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--bg-primary);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .nav {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+
+        .nav-link {
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .nav-link:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .upload-section {
+            background: var(--bg-primary);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: var(--bg-secondary);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        .progress-section {
+            background: var(--bg-primary);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .results-section {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: none;
+        }
+
+        .results-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-card {
+            text-align: center;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+
+        .summary-card .number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .summary-card .label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .matches { color: var(--success); }
+        .discrepancies { color: var(--warning); }
+        .unmatched { color: var(--danger); }
+
+        .transaction-groups {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .transaction-group {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .group-header {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .group-content {
+            display: none;
+            padding: 0;
+        }
+
+        .group-content.expanded {
+            display: block;
+        }
+
+        .transaction-row {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 1fr 100px 80px;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .transaction-details h4 {
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+        }
+
+        .transaction-meta {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .amount {
+            text-align: right;
+            font-weight: 600;
+        }
+
+        .actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-edit {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-ignore {
+            background: var(--text-secondary);
+            color: white;
+        }
+
+        .discrepancy-details {
+            background: rgba(255, 149, 0, 0.1);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-size: 0.85rem;
+        }
+
+        .apply-section {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
+            text-align: center;
+        }
+
+        .apply-btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+            
+            .nav {
+                flex-wrap: wrap;
+            }
+            
+            .transaction-row {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .amount, .actions {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏦 Bank Statement Reconciliation</h1>
+            <p>Upload your monthly bank statement to automatically match and correct transactions</p>
+            <div class="nav">
+                <a href="/dashboard" class="nav-link">📊 Dashboard</a>
+                <a href="/reconciliation" class="nav-link">🏦 Reconciliation</a>
+            </div>
+        </div>
+
+        <div class="upload-section">
+            <h2>Upload Bank Statement</h2>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <div>
+                    <strong>📄 Drop your PDF bank statement here</strong><br>
+                    <span style="color: var(--text-secondary);">or click to browse</span>
+                </div>
+                <input type="file" id="fileInput" class="file-input" accept=".pdf" onchange="handleFileUpload(event)">
+            </div>
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Choose Bank Statement PDF
+            </button>
+        </div>
+
+        <div class="progress-section" id="progressSection">
+            <h3>Processing Bank Statement...</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <p id="progressText">Uploading file...</p>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="results-header">
+                <h2>Reconciliation Results</h2>
+                <button class="btn btn-approve" onclick="startOver()">Upload New Statement</button>
+            </div>
+            
+            <div class="summary-cards" id="summaryCards">
+                <!-- Summary cards will be populated here -->
+            </div>
+
+            <div class="transaction-groups" id="transactionGroups">
+                <!-- Transaction groups will be populated here -->
+            </div>
+
+            <div class="apply-section">
+                <button class="apply-btn" onclick="applyChanges()">
+                    Apply All Approved Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let reconciliationData = null;
+        let pendingChanges = [];
+
+        // File upload handling
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type !== 'application/pdf') {
+                alert('Please select a PDF file');
+                return;
+            }
+
+            uploadAndProcess(file);
+        }
+
+        // Drag and drop handling
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileUpload({ target: { files } });
+            }
+        });
+
+        async function uploadAndProcess(file) {
+            const formData = new FormData();
+            formData.append('statement', file);
+
+            // Show progress
+            document.getElementById('progressSection').style.display = 'block';
+            updateProgress(0, 'Uploading file...');
+
+            try {
+                updateProgress(25, 'Parsing PDF...');
+                
+                const response = await fetch('/api/reconcile-statement', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                updateProgress(50, 'Extracting transactions...');
+                
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                updateProgress(75, 'Matching transactions...');
+                
+                const result = await response.json();
+                
+                updateProgress(100, 'Complete!');
+                
+                setTimeout(() => {
+                    document.getElementById('progressSection').style.display = 'none';
+                    displayResults(result);
+                }, 500);
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Failed to process bank statement: ' + error.message);
+                document.getElementById('progressSection').style.display = 'none';
+            }
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('progressText').textContent = text;
+        }
+
+        function displayResults(data) {
+            reconciliationData = data;
+            
+            // Show results section
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            // Populate summary cards
+            const summaryCards = document.getElementById('summaryCards');
+            summaryCards.innerHTML = `
+                <div class="summary-card">
+                    <div class="number matches">${data.summary.matched}</div>
+                    <div class="label">Perfect Matches</div>
+                </div>
+                <div class="summary-card">
+                    <div class="number discrepancies">${data.summary.discrepancies}</div>
+                    <div class="label">Discrepancies</div>
+                </div>
+                <div class="summary-card">
+                    <div class="number unmatched">${data.summary.unmatched}</div>
+                    <div class="label">Unmatched</div>
+                </div>
+                <div class="summary-card">
+                    <div class="number">${data.summary.total}</div>
+                    <div class="label">Total Bank Transactions</div>
+                </div>
+            `;
+
+            // Populate transaction groups
+            const groupsContainer = document.getElementById('transactionGroups');
+            groupsContainer.innerHTML = '';
+
+            if (data.matches.length > 0) {
+                groupsContainer.appendChild(createTransactionGroup('Perfect Matches', data.matches, 'matches'));
+            }
+
+            if (data.discrepancies.length > 0) {
+                groupsContainer.appendChild(createTransactionGroup('Discrepancies', data.discrepancies, 'discrepancies'));
+            }
+
+            if (data.unmatched.length > 0) {
+                groupsContainer.appendChild(createTransactionGroup('Unmatched Transactions', data.unmatched, 'unmatched'));
+            }
+        }
+
+        function createTransactionGroup(title, transactions, type) {
+            const group = document.createElement('div');
+            group.className = 'transaction-group';
+            
+            const header = document.createElement('div');
+            header.className = 'group-header';
+            header.innerHTML = `
+                <span>${title} (${transactions.length})</span>
+                <span>▼</span>
+            `;
+            header.onclick = () => toggleGroup(group);
+            
+            const content = document.createElement('div');
+            content.className = 'group-content expanded';
+            
+            transactions.forEach(item => {
+                const row = createTransactionRow(item, type);
+                content.appendChild(row);
+            });
+            
+            group.appendChild(header);
+            group.appendChild(content);
+            
+            return group;
+        }
+
+        function createTransactionRow(item, type) {
+            const row = document.createElement('div');
+            row.className = 'transaction-row';
+            
+            const bankTx = item.bankTransaction;
+            const dbTx = item.dbTransaction;
+            
+            let detailsHtml = `
+                <div class="transaction-details">
+                    <h4>${bankTx.description}</h4>
+                    <div class="transaction-meta">
+                        Bank: ${bankTx.date} • ${bankTx.currency}
+                        ${dbTx ? `<br>Database: ${dbTx.shop} • ${dbTx.date}` : ''}
+                    </div>
+            `;
+            
+            if (item.discrepancy) {
+                detailsHtml += '<div class="discrepancy-details">';
+                item.discrepancy.forEach(disc => {
+                    detailsHtml += `<div><strong>${disc.field}:</strong> Bank: ${disc.bank}, DB: ${disc.database}</div>`;
+                });
+                detailsHtml += '</div>';
+            }
+            
+            detailsHtml += '</div>';
+            
+            const amountHtml = `<div class="amount">${formatCurrency(bankTx.amount, bankTx.currency)}</div>`;
+            
+            let actionsHtml = '<div class="actions">';
+            if (type === 'matches') {
+                actionsHtml += '<button class="btn btn-approve" onclick="approveMatch(this)" data-approved="true">✓ Approved</button>';
+            } else if (type === 'discrepancies') {
+                actionsHtml += `
+                    <button class="btn btn-approve" onclick="approveCorrection(this, ${JSON.stringify(item).replace(/"/g, '&quot;')})">✓ Fix</button>
+                    <button class="btn btn-ignore" onclick="ignoreDiscrepancy(this)">Ignore</button>
+                `;
+            } else if (type === 'unmatched') {
+                actionsHtml += `
+                    <button class="btn btn-approve" onclick="createTransaction(this, ${JSON.stringify(bankTx).replace(/"/g, '&quot;')})">+ Create</button>
+                    <button class="btn btn-ignore" onclick="ignoreTransaction(this)">Ignore</button>
+                `;
+            }
+            actionsHtml += '</div>';
+            
+            row.innerHTML = detailsHtml + amountHtml + actionsHtml;
+            
+            return row;
+        }
+
+        function toggleGroup(group) {
+            const content = group.querySelector('.group-content');
+            const header = group.querySelector('.group-header span:last-child');
+            
+            content.classList.toggle('expanded');
+            header.textContent = content.classList.contains('expanded') ? '▼' : '▶';
+        }
+
+        function approveMatch(button) {
+            button.textContent = '✓ Approved';
+            button.disabled = true;
+            button.style.opacity = '0.6';
+        }
+
+        function approveCorrection(button, item) {
+            // Add to pending changes
+            item.discrepancy.forEach(disc => {
+                pendingChanges.push({
+                    action: `update_${disc.field}`,
+                    transactionId: item.dbTransaction.id,
+                    [`old${disc.field.charAt(0).toUpperCase() + disc.field.slice(1)}`]: disc.database,
+                    [`new${disc.field.charAt(0).toUpperCase() + disc.field.slice(1)}`]: disc.bank
+                });
+            });
+            
+            button.textContent = '✓ Will Fix';
+            button.disabled = true;
+            button.style.opacity = '0.6';
+        }
+
+        function createTransaction(button, bankTx) {
+            pendingChanges.push({
+                action: 'create_transaction',
+                description: bankTx.description,
+                date: bankTx.date,
+                amount: bankTx.amount,
+                currency: bankTx.currency
+            });
+            
+            button.textContent = '✓ Will Create';
+            button.disabled = true;
+            button.style.opacity = '0.6';
+        }
+
+        function ignoreDiscrepancy(button) {
+            button.textContent = 'Ignored';
+            button.disabled = true;
+            button.style.opacity = '0.6';
+        }
+
+        function ignoreTransaction(button) {
+            button.textContent = 'Ignored';
+            button.disabled = true;
+            button.style.opacity = '0.6';
+        }
+
+        async function applyChanges() {
+            if (pendingChanges.length === 0) {
+                alert('No changes to apply');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/apply-reconciliation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        changes: pendingChanges
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(`Successfully applied ${result.applied} changes`);
+                    startOver();
+                } else {
+                    alert('Some changes failed to apply. Check console for details.');
+                    console.error('Apply errors:', result.errors);
+                }
+
+            } catch (error) {
+                console.error('Apply error:', error);
+                alert('Failed to apply changes: ' + error.message);
+            }
+        }
+
+        function startOver() {
+            document.getElementById('resultsSection').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            reconciliationData = null;
+            pendingChanges = [];
+        }
+
+        function formatCurrency(amount, currency = 'CHF') {
+            return new Intl.NumberFormat('de-CH', {
+                style: 'currency',
+                currency: currency
+            }).format(amount);
+        }
+    </script>
+</body>
+</html>
