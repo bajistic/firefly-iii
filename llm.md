@@ -157,3 +157,46 @@ Open `src/public/index.html` in your browser (served at `/`) to manually:
 
 ## License
 This project is released under the MIT License. See `LICENSE` (if present) for details.
+
+
+# 📁Claude Instructions
+
+  1. .claude/instructions.md - Comprehensive Development Guide
+
+  - Project architecture and database systems overview
+  - Development guidelines and code patterns
+  - Testing procedures and common tasks
+  - Security considerations and best practices
+  - Troubleshooting guide and emergency procedures
+
+  2. .claude/context.md - Current Project State
+
+  - Recent changes and migration status
+  - System status with all components
+  - Technical architecture and data mapping
+  - Usage patterns and response formats
+  - Integration status and future plans
+
+  3. .claude/project-structure.md - Detailed File Structure
+
+  - Complete repository layout with explanations
+  - Key components and their responsibilities
+  - Database architecture diagrams
+  - Data flow visualization
+  - Recent changes tracking
+
+  4. .claude/CLAUDE.md - Quick Reference Summary
+
+  - Concise project overview
+  - Key features and architecture summary
+  - Critical files and development guidelines
+  - Current status checklist
+
+  🎯 Benefits:
+
+  - Future Development: Any Claude instance can quickly understand your
+  project
+  - Consistency: Clear guidelines for maintaining dual database sync
+  - Onboarding: New developers can understand the system architecture
+  - Documentation: Comprehensive reference for all project aspects
+  - Best Practices: Established patterns for financial data handling
