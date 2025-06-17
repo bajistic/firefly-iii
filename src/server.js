@@ -30,6 +30,8 @@ const {
   createFireflyTransaction,
   createFireflyIncomeTransaction,
   createFireflyAccount,
+  createSyncedTransaction,
+  createSyncedIncome,
 } = require('./firefly');
 const multer = require('multer');
 const sharp = require('sharp');
@@ -380,66 +382,51 @@ app.post('/ai/natural', upload.single('image'), async (req, res) => {
 
       const { shop, date, time, total, currency = 'CHF', discount = null, items, account_id = null } = aiDecision.transaction;
       try {
-        const transactionResult = await dbRunAsync(
-          'INSERT INTO transactions (shop, date, time, total, currency, discount, receipt_path, account_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [shop, date, time, total, currency, discount, receiptPath, account_id]
-        );
-        const transactionId = transactionResult.lastID;
-
-        const localItems = [];
-        for (const item of items) {
-          const { name, quantity, price, category, discount: itemDiscount = null } = item;
-          const itemResult = await dbRunAsync(
-            'INSERT INTO items (transaction_id, name, quantity, price, category, discount) VALUES (?, ?, ?, ?, ?, ?)',
-            [transactionId, name, quantity, price, category, itemDiscount]
-          );
-          localItems.push({ ...item, localItemId: itemResult.lastID });
-        }
-
-        if (account_id && total) {
-          await dbRunAsync('UPDATE accounts SET balance = balance - ? WHERE id = ?', [total, account_id]);
-        }
-
-        stepResults.push({
-          success: true,
-          message: `Added transaction for ${shop || 'unknown shop'} on ${date} in ${currency}${discount ? ` with ${discount} discount` : ''} for total of ${total}${currency}`,
-        });
-
-        try {
-          const tfId = await createFireflyTransaction(transactionId, { shop, date, total, currency, items: localItems, account_id });
-          stepResults.push({ success: true, message: `Synced transaction to Firefly with ID ${tfId}` });
-        } catch (err) {
-          console.error('Firefly sync error:', err.message);
-          stepResults.push({ success: false, error: `Failed to sync to Firefly: ${err.message}` });
+        // Use the new synced function that handles both databases
+        const syncResult = await createSyncedTransaction(shop, total, currency, date, receiptPath, items);
+        
+        if (syncResult.success) {
+          stepResults.push({
+            success: true,
+            message: `✅ Added transaction for ${shop || 'unknown shop'} on ${date} in ${currency}${discount ? ` with ${discount} discount` : ''} for total of ${total} ${currency}. Synced to both databases (Original ID: ${syncResult.originalId}, Firefly ID: ${syncResult.fireflyId})`,
+          });
+        } else {
+          stepResults.push({
+            success: false,
+            error: `Failed to create transaction: ${syncResult.error}`
+          });
         }
       } catch (err) {
-        console.error('Database error:', err.message);
-        throw err;
+        console.error('Transaction creation error:', err.message);
+        stepResults.push({
+          success: false,
+          error: `Failed to create transaction: ${err.message}`
+        });
       }
     } else if (aiDecision.action === 'add_income') {
       console.log('Executing add_income');
       const { type, amount, date, description, account_id } = aiDecision.income;
       try {
-        const incomeResult = await dbRunAsync(
-          'INSERT INTO income (type, amount, date, description, account_id) VALUES (?, ?, ?, ?, ?)',
-          [type, amount, date, description, account_id]
-        );
-        const localIncomeId = incomeResult.lastID;
-        if (account_id) {
-          await dbRunAsync('UPDATE accounts SET balance = balance + ? WHERE id = ?', [amount, account_id]);
-        }
-        stepResults.push({ success: true, message: `Added ${type} income of ${amount} on ${date}` });
-
-        try {
-          const tfId = await createFireflyIncomeTransaction(localIncomeId, { type, amount, date, description, account_id });
-          stepResults.push({ success: true, message: `Synced income to Firefly with ID ${tfId}` });
-        } catch (err) {
-          console.error('Firefly income sync error:', err.message);
-          stepResults.push({ success: false, error: `Failed to sync income to Firefly: ${err.message}` });
+        // Use the new synced function that handles both databases
+        const syncResult = await createSyncedIncome(type, amount, description || '', date);
+        
+        if (syncResult.success) {
+          stepResults.push({
+            success: true,
+            message: `✅ Added ${type} income of ${amount} CHF on ${date}. Synced to both databases (Original ID: ${syncResult.originalId}, Firefly ID: ${syncResult.fireflyId})`
+          });
+        } else {
+          stepResults.push({
+            success: false,
+            error: `Failed to create income: ${syncResult.error}`
+          });
         }
       } catch (err) {
-        console.error('Database error:', err.message);
-        throw err;
+        console.error('Income creation error:', err.message);
+        stepResults.push({
+          success: false,
+          error: `Failed to create income: ${err.message}`
+        });
       }
     } else if (aiDecision.action === 'add_account') {
       console.log('Executing add_account');

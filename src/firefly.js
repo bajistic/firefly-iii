@@ -1,13 +1,34 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { dbRunAsync, dbAllAsync } = require('./db');
+const mysql = require('mysql2/promise');
 require('dotenv').config();
 
 const {
   FIREFLY_URL,
   FIREFLY_TOKEN,
   FIREFLY_WEBHOOK_SECRET,
+  DB_HOST,
+  DB_PORT,
+  DB_USER,
+  DB_PASSWORD,
+  DB_NAME,
 } = process.env;
+
+// Original MariaDB connection for syncing
+let originalDbConnection = null;
+async function getOriginalDbConnection() {
+  if (!originalDbConnection) {
+    originalDbConnection = await mysql.createConnection({
+      host: DB_HOST,
+      port: DB_PORT,
+      user: DB_USER,
+      password: DB_PASSWORD,
+      database: 'finance' // Your original database name
+    });
+  }
+  return originalDbConnection;
+}
 
 const fireflyEnabled = Boolean(FIREFLY_URL && FIREFLY_TOKEN);
 if (!fireflyEnabled) {
@@ -173,10 +194,103 @@ function handleWebhook(event) {
   console.log('Webhook handling not needed when using native Firefly database');
 }
 
+/**
+ * Enhanced transaction creation that syncs both databases
+ * Keeps AI interface minimal while maintaining dual sync
+ */
+async function createSyncedTransaction(shop, amount, currency = 'EUR', date = null, receiptPath = null, items = []) {
+  const transactionDate = date || new Date().toISOString().split('T')[0];
+  const time = new Date().toTimeString().split(' ')[0];
+  
+  try {
+    // 1. Create in original MariaDB database
+    const originalDb = await getOriginalDbConnection();
+    const [result] = await originalDb.execute(`
+      INSERT INTO transactions (shop, date, time, total, currency, receipt_path, account_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [shop, transactionDate, time, amount, currency, receiptPath, 1]);
+    
+    const originalTransactionId = result.insertId;
+    
+    // 2. Insert items if provided
+    for (const item of items) {
+      await originalDb.execute(`
+        INSERT INTO items (transaction_id, name, quantity, price, category)
+        VALUES (?, ?, ?, ?, ?)
+      `, [originalTransactionId, item.name, item.quantity || 1, item.price || 0, item.category || '']);
+    }
+    
+    // 3. Create in Firefly III (using existing function)
+    const fireflyJournalId = await createFireflyTransaction(shop, amount, currency, date, receiptPath);
+    
+    // 4. Link the two records
+    if (fireflyJournalId) {
+      await originalDb.execute(`
+        UPDATE transactions SET transaction_journal_id = ? WHERE id = ?
+      `, [fireflyJournalId, originalTransactionId]);
+    }
+    
+    console.log(`✅ Synced transaction: ${shop} - ${amount} ${currency} (Original ID: ${originalTransactionId}, Firefly ID: ${fireflyJournalId})`);
+    
+    return {
+      originalId: originalTransactionId,
+      fireflyId: fireflyJournalId,
+      success: true
+    };
+    
+  } catch (error) {
+    console.error('❌ Error syncing transaction:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Enhanced income creation that syncs both databases
+ */
+async function createSyncedIncome(type, amount, description = '', date = null) {
+  const incomeDate = date || new Date().toISOString().split('T')[0];
+  
+  try {
+    // 1. Create in original MariaDB database
+    const originalDb = await getOriginalDbConnection();
+    const [result] = await originalDb.execute(`
+      INSERT INTO income (type, amount, date, description, account_id)
+      VALUES (?, ?, ?, ?, ?)
+    `, [type, amount, incomeDate, description, 1]);
+    
+    const originalIncomeId = result.insertId;
+    
+    // 2. Create in Firefly III (using existing function)
+    const fireflyJournalId = await createFireflyIncomeTransaction(type, amount, 'CHF', date);
+    
+    // 3. Link the records
+    if (fireflyJournalId) {
+      await originalDb.execute(`
+        UPDATE income SET firefly_id = ? WHERE id = ?
+      `, [fireflyJournalId, originalIncomeId]);
+    }
+    
+    console.log(`✅ Synced income: ${type} - ${amount} CHF (Original ID: ${originalIncomeId}, Firefly ID: ${fireflyJournalId})`);
+    
+    return {
+      originalId: originalIncomeId,
+      fireflyId: fireflyJournalId,
+      success: true
+    };
+    
+  } catch (error) {
+    console.error('❌ Error syncing income:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   verifySignature,
   handleWebhook,
   createFireflyTransaction,
   createFireflyIncomeTransaction,
   createFireflyAccount,
+  // New synced functions
+  createSyncedTransaction,
+  createSyncedIncome,
 };
