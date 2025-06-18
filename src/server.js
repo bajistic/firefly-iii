@@ -63,6 +63,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0'; // Bind to all interfaces
 const TAILSCALE_IP = process.env.TAILSCALE_IP || getTailscaleIP() || 'unknown'; // Fallback to dynamic IP or 'unknown'
+const DB_NAME = process.env.DB_NAME;
 const DOSSIER_PATH = path.join(__dirname, 'dossier.md');
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
@@ -442,43 +443,40 @@ app.post('/ai/natural', upload.single('image'), async (req, res) => {
 
       console.log(`\x1b[32m[IMG]\x1b[0m Received file: ${originalFilename}, MIME type: ${mimeType}, Saved at: ${uploadedFilePath}`);
 
-      // Handle PDF files
+      // Handle PDF files  
       if (mimeType === 'application/pdf') {
         console.log(`\x1b[32m[PDF]\x1b[0m Processing PDF receipt: ${originalFilename}`);
         try {
-          // Use the PDF parsing from reconciliation module
-          const { parseBankStatement } = require('./reconciliation');
-          const parseResult = await parseBankStatement(uploadedFilePath);
+          // Extract raw text from PDF for receipt processing
+          const pdf = require('pdf-parse');
+          const pdfBuffer = await fs.readFile(uploadedFilePath);
+          const pdfData = await pdf(pdfBuffer);
           
-          if (parseResult.success && parseResult.transactions.length > 0) {
-            // Use the first transaction from PDF as receipt data
-            const pdfTransaction = parseResult.transactions[0];
-            const pdfText = `PDF Receipt processed:
-Shop: ${pdfTransaction.description}
-Date: ${pdfTransaction.date}
-Amount: ${pdfTransaction.amount} ${pdfTransaction.currency}
-Raw text extracted from PDF for AI processing.`;
+          if (pdfData.text && pdfData.text.trim().length > 0) {
+            console.log(`\x1b[32m[PDF]\x1b[0m Successfully extracted text from PDF (${pdfData.text.length} chars)`);
             
-            // Add PDF content as text message to OpenAI
+            // Send PDF text content to OpenAI for processing
             const userPdfMessage = { 
               role: 'user', 
-              content: `${command} - PDF Receipt: ${pdfText}` 
+              content: `${command} - PDF Receipt Content:\n\n${pdfData.text.trim()}\n\nPlease extract the shop name, date, total amount, currency, and itemized list from this receipt.` 
             };
             messagesToOpenAI.push(userPdfMessage);
             finalReceiptPathForDB = uploadedFilePath; // Store PDF path
-            
-            console.log(`\x1b[32m[PDF]\x1b[0m Successfully extracted ${parseResult.transactions.length} transactions from PDF`);
           } else {
-            console.log(`\x1b[33m[PDF]\x1b[0m PDF parsing failed or no transactions found, treating as regular document`);
+            console.log(`\x1b[33m[PDF]\x1b[0m No text content found in PDF`);
             const userPdfMessage = { 
               role: 'user', 
-              content: `${command} - PDF document uploaded: ${originalFilename}` 
+              content: `${command} - PDF document uploaded: ${originalFilename} (no readable text found)` 
             };
             messagesToOpenAI.push(userPdfMessage);
           }
         } catch (pdfError) {
           console.error('\x1b[31m[ERR]\x1b[0m PDF processing error:', pdfError.message);
-          results.push({ success: false, error: `PDF processing failed: ${pdfError.message}` });
+          const userPdfMessage = { 
+            role: 'user', 
+            content: `${command} - PDF document uploaded: ${originalFilename} (processing failed: ${pdfError.message})` 
+          };
+          messagesToOpenAI.push(userPdfMessage);
         }
       } 
       // Handle image files
@@ -615,28 +613,38 @@ Raw text extracted from PDF for AI processing.`;
       }
 
       const { shop, date, time, total, currency = 'CHF', discount = null, items, account_id = null } = aiDecision.transaction;
-      try {
-        // Use the new synced function that handles both databases
-        const syncResult = await createSyncedTransaction(shop, total, currency, date, receiptPath, items);
-        
-        if (syncResult.success) {
-          stepResults.push({
-            success: true,
-            message: `✅ Added transaction for ${shop || 'unknown shop'} on ${date} in ${currency}${discount ? ` with ${discount} discount` : ''} for total of ${total} ${currency}. Synced to both databases (Original ID: ${syncResult.originalId}, Firefly ID: ${syncResult.fireflyId})`,
-          });
-        } else {
-          stepResults.push({
-            success: false,
-            error: `Failed to create transaction: ${syncResult.error}`
-          });
-        }
-      } catch (err) {
-        console.error('Transaction creation error:', err.message);
+      
+      // Validate transaction before creating
+      if (!shop || shop === 'Unknown' || !total || total <= 0) {
+        console.log(`⚠️ Rejecting invalid transaction: shop="${shop}", total=${total}`);
         stepResults.push({
           success: false,
-          error: `Failed to create transaction: ${err.message}`
+          error: `Invalid transaction data: Missing shop name or invalid amount (shop: "${shop}", total: ${total}). Please provide a valid receipt with readable shop name and amount.`
         });
-      }
+      } else {
+          try {
+            // Use the new synced function that handles both databases
+            const syncResult = await createSyncedTransaction(shop, total, currency, date, receiptPath, items);
+            
+            if (syncResult.success) {
+              stepResults.push({
+                success: true,
+                message: `✅ Added transaction for ${shop || 'unknown shop'} on ${date} in ${currency}${discount ? ` with ${discount} discount` : ''} for total of ${total} ${currency}. Synced to both databases (Original ID: ${syncResult.originalId}, Firefly ID: ${syncResult.fireflyId})`,
+              });
+            } else {
+              stepResults.push({
+                success: false,
+                error: `Failed to create transaction: ${syncResult.error}`
+              });
+            }
+          } catch (err) {
+            console.error('Transaction creation error:', err.message);
+            stepResults.push({
+              success: false,
+              error: `Failed to create transaction: ${err.message}`
+            });
+          }
+        }
     } else if (aiDecision.action === 'add_income') {
       console.log('Executing add_income');
       const { type, amount, date, description, account_id } = aiDecision.income;

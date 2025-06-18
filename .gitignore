@@ -7,4 +7,5 @@ token.json
 *.db
 *.jpg
 *.heic
+*.pdf
 *.log

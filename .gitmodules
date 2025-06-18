@@ -1,4 +1,0 @@
-[submodule "firefly-iii"]
-	path = firefly-iii
-	url = git@github.com:bajistic/firefly-iii.git
-	branch = firefly-final
