@@ -46,3 +46,326 @@
 2025-06-17T23:30:31.590Z [LOG] 18.06.2025, 01:30:31.589: [SRV] Telegram logging bot initialized for admin chat.
 2025-06-17T23:30:31.598Z [LOG] 18.06.2025, 01:30:31.598: Server running on http://100.91.174.117:3000 (bound to 0.0.0.0:3000)
 2025-06-17T23:30:31.598Z [LOG] 18.06.2025, 01:30:31.598: Open http://localhost:3000 or http://127.0.0.1:3000 in your browser if running locally.
+2025-06-17T23:43:30.435Z [LOG] 18.06.2025, 01:43:30.434: [BOT] Photo received from chatId 1931272012
+2025-06-17T23:43:30.477Z [LOG] 18.06.2025, 01:43:30.477: [BOT] Using command for photo: "Process this image"
+2025-06-17T23:43:30.819Z [LOG] 18.06.2025, 01:43:30.819: Received command: Process this image
+2025-06-17T23:43:30.821Z [ERROR] FATAL: Failed to load database schema DDL: {}
+2025-06-17T23:43:30.821Z [LOG] 18.06.2025, 01:43:30.821: [IMG] Received file: telegram-image-1750203810478.jpg, MIME type: image/jpeg, Saved at: uploads/1750203810728-telegram-image-1750203810478.jpg
+2025-06-17T23:43:30.822Z [LOG] 18.06.2025, 01:43:30.821: [IMG] File is already JPEG. Using as is: uploads/1750203810728-telegram-image-1750203810478.jpg
+2025-06-17T23:43:30.824Z [LOG] 18.06.2025, 01:43:30.824: Sending command to OpenAI for action decision...
+2025-06-17T23:43:37.540Z [LOG] 18.06.2025, 01:43:37.539: 1. OpenAI Action Response: {
+  "role": "assistant",
+  "content": null,
+  "tool_calls": [
+    {
+      "id": "call_gDk7dbXmW9D1k7uaLOQJFhZb",
+      "type": "function",
+      "function": {
+        "name": "handle_natural_command",
+        "arguments": "{\n  \"action\": \"create_transaction\",\n  \"transaction\": {\n    \"shop\": \"REWE Altenhöferallee/Riedbergallee, Frankfurt\",\n    \"date\": \"2025-06-16\",\n    \"time\": \"13:51:00\",\n    \"total\": 2.48,\n    \"currency\": \"EUR\",\n    \"discount\": null,\n    \"items\": [\n      {\n        \"name\": \"Mio Mate Ginger\",\n        \"quantity\": 2,\n        \"price\": 1.09,\n        \"category\": \"groceries\"\n      },\n      {\n        \"name\": \"Pfand\",\n        \"quantity\": 2,\n        \"price\": 0.15,\n        \"category\": \"groceries\"\n      }\n    ]\n  }\n}"
+      }
+    }
+  ],
+  "refusal": null,
+  "annotations": []
+}
+2025-06-17T23:43:37.541Z [LOG] 18.06.2025, 01:43:37.540: 1.a OpenAI Action Response Object {"role":"assistant","content":null,"tool_calls":[{"id":"call_gDk7dbXmW9D1k7uaLOQJFhZb","type":"function","function":{"name":"handle_natural_command","arguments":"{\n  \"action\": \"create_transaction\",\n  \"transaction\": {\n    \"shop\": \"REWE Altenhöferallee/Riedbergallee, Frankfurt\",\n    \"date\": \"2025-06-16\",\n    \"time\": \"13:51:00\",\n    \"total\": 2.48,\n    \"currency\": \"EUR\",\n    \"discount\": null,\n    \"items\": [\n      {\n        \"name\": \"Mio Mate Ginger\",\n        \"quantity\": 2,\n        \"price\": 1.09,\n        \"category\": \"groceries\"\n      },\n      {\n        \"name\": \"Pfand\",\n        \"quantity\": 2,\n        \"price\": 0.15,\n        \"category\": \"groceries\"\n      }\n    ]\n  }\n}"}}],"refusal":null,"annotations":[]}
+2025-06-17T23:43:37.541Z [LOG] 18.06.2025, 01:43:37.541: Parsed Args {"action":"create_transaction","transaction":{"shop":"REWE Altenhöferallee/Riedbergallee, Frankfurt","date":"2025-06-16","time":"13:51:00","total":2.48,"currency":"EUR","discount":null,"items":[{"name":"Mio Mate Ginger","quantity":2,"price":1.09,"category":"groceries"},{"name":"Pfand","quantity":2,"price":0.15,"category":"groceries"}]}}
+2025-06-17T23:43:37.542Z [LOG] 18.06.2025, 01:43:37.542: AI Decision (Validated): {
+  "action": "create_transaction",
+  "transaction": {
+    "shop": "REWE Altenhöferallee/Riedbergallee, Frankfurt",
+    "date": "2025-06-16",
+    "time": "13:51:00",
+    "total": 2.48,
+    "currency": "EUR",
+    "discount": null,
+    "items": [
+      {
+        "name": "Mio Mate Ginger",
+        "quantity": 2,
+        "price": 1.09,
+        "category": "groceries"
+      },
+      {
+        "name": "Pfand",
+        "quantity": 2,
+        "price": 0.15,
+        "category": "groceries"
+      }
+    ]
+  }
+}
+2025-06-17T23:43:37.542Z [LOG] 18.06.2025, 01:43:37.542: Executing step 1 with action: create_transaction
+2025-06-17T23:43:37.542Z [LOG] 18.06.2025, 01:43:37.542: Executing create_transaction
+2025-06-17T23:43:37.554Z [LOG] 18.06.2025, 01:43:37.554: ✅ Created transaction: REWE Altenhöferallee/Riedbergallee, Frankfurt - 2.48 EUR (ID: 87)
+2025-06-17T23:43:37.555Z [LOG] 18.06.2025, 01:43:37.554: Results before serialization: [
+  {
+    "success": true,
+    "message": "✅ Added transaction for REWE Altenhöferallee/Riedbergallee, Frankfurt on 2025-06-16 in EUR for total of 2.48 EUR. Synced to both databases (Original ID: undefined, Firefly ID: undefined)"
+  }
+]
+2025-06-17T23:43:37.555Z [LOG] 18.06.2025, 01:43:37.555: Sanitized results for interpreter: [
+  {
+    "success": true,
+    "message": "✅ Added transaction for REWE Altenhöferallee/Riedbergallee, Frankfurt on 2025-06-16 in EUR for total of 2.48 EUR. Synced to both databases (Original ID: undefined, Firefly ID: undefined)",
+    "error": null,
+    "event": null,
+    "data": null,
+    "query": null,
+    "url": null,
+    "company": null,
+    "details": null,
+    "migration_description": null,
+    "sql_statements": null,
+    "messages": null,
+    "total": null,
+    "result": null,
+    "message_id": null
+  }
+]
+2025-06-17T23:43:37.556Z [LOG] 18.06.2025, 01:43:37.555: Interpreting results for user summary...
+2025-06-17T23:43:38.986Z [LOG] 18.06.2025, 01:43:38.985: Interpreter summary: Added transaction for REWE Altenhöferallee/Riedbergallee, Frankfurt on June 16, 2025, for a total of 2.48 EUR.
+2025-06-17T23:43:38.991Z [LOG] 18.06.2025, 01:43:38.990: [BOT] Response from API for photo for chatId 1931272012: "Added transaction for REWE Altenhöferallee/Riedbergallee, Frankfurt on June 16, 2025, for a total of 2.48 EUR."
+2025-06-18T00:33:32.341Z [LOG] 18.06.2025, 02:33:32.340: [BOT] Photo received from chatId 1931272012
+2025-06-18T00:33:32.385Z [LOG] 18.06.2025, 02:33:32.384: [BOT] Using command for photo: "Process this image"
+2025-06-18T00:33:32.731Z [LOG] 18.06.2025, 02:33:32.730: Received command: Process this image
+2025-06-18T00:33:32.731Z [ERROR] FATAL: Failed to load database schema DDL: {}
+2025-06-18T00:33:32.732Z [LOG] 18.06.2025, 02:33:32.732: [IMG] File is already JPEG. Using as is: uploads/1750206812643-telegram-image-1750206812385.jpg
+2025-06-18T00:33:32.732Z [LOG] 18.06.2025, 02:33:32.732: [IMG] Received file: telegram-image-1750206812385.jpg, MIME type: image/jpeg, Saved at: uploads/1750206812643-telegram-image-1750206812385.jpg
+2025-06-18T00:33:32.733Z [LOG] 18.06.2025, 02:33:32.733: Sending command to OpenAI for action decision...
+2025-06-18T00:33:41.767Z [LOG] 18.06.2025, 02:33:41.766: 1. OpenAI Action Response: {
+  "role": "assistant",
+  "content": null,
+  "tool_calls": [
+    {
+      "id": "call_gjwbaZi6O1mU91DkTikFRetE",
+      "type": "function",
+      "function": {
+        "name": "handle_natural_command",
+        "arguments": "{\"action\":\"create_transaction\",\"transaction\":{\"shop\":\"REWE Altenhöferallee/Riedbergallee\",\"date\":\"2025-06-17\",\"time\":\"12:42:36\",\"total\":7.04,\"currency\":\"EUR\",\"discount\":null,\"items\":[{\"name\":\"SPIESSBR-BROETCH\",\"quantity\":1,\"price\":2.90,\"category\":\"groceries\"},{\"name\":\"HI-S BAUCH BROET\",\"quantity\":1,\"price\":2.90,\"category\":\"groceries\"},{\"name\":\"MIO MATE GINGER\",\"quantity\":1,\"price\":1.09,\"category\":\"groceries\"},{\"name\":\"PFAND 0,15 EUR\",\"quantity\":1,\"price\":0.15,\"category\":\"misc\"}]}}"
+      }
+    }
+  ],
+  "refusal": null,
+  "annotations": []
+}
+2025-06-18T00:33:41.768Z [LOG] 18.06.2025, 02:33:41.767: 1.a OpenAI Action Response Object {"role":"assistant","content":null,"tool_calls":[{"id":"call_gjwbaZi6O1mU91DkTikFRetE","type":"function","function":{"name":"handle_natural_command","arguments":"{\"action\":\"create_transaction\",\"transaction\":{\"shop\":\"REWE Altenhöferallee/Riedbergallee\",\"date\":\"2025-06-17\",\"time\":\"12:42:36\",\"total\":7.04,\"currency\":\"EUR\",\"discount\":null,\"items\":[{\"name\":\"SPIESSBR-BROETCH\",\"quantity\":1,\"price\":2.90,\"category\":\"groceries\"},{\"name\":\"HI-S BAUCH BROET\",\"quantity\":1,\"price\":2.90,\"category\":\"groceries\"},{\"name\":\"MIO MATE GINGER\",\"quantity\":1,\"price\":1.09,\"category\":\"groceries\"},{\"name\":\"PFAND 0,15 EUR\",\"quantity\":1,\"price\":0.15,\"category\":\"misc\"}]}}"}}],"refusal":null,"annotations":[]}
+2025-06-18T00:33:41.768Z [LOG] 18.06.2025, 02:33:41.768: Parsed Args {"action":"create_transaction","transaction":{"shop":"REWE Altenhöferallee/Riedbergallee","date":"2025-06-17","time":"12:42:36","total":7.04,"currency":"EUR","discount":null,"items":[{"name":"SPIESSBR-BROETCH","quantity":1,"price":2.9,"category":"groceries"},{"name":"HI-S BAUCH BROET","quantity":1,"price":2.9,"category":"groceries"},{"name":"MIO MATE GINGER","quantity":1,"price":1.09,"category":"groceries"},{"name":"PFAND 0,15 EUR","quantity":1,"price":0.15,"category":"misc"}]}}
+2025-06-18T00:33:41.769Z [LOG] 18.06.2025, 02:33:41.768: AI Decision (Validated): {
+  "action": "create_transaction",
+  "transaction": {
+    "shop": "REWE Altenhöferallee/Riedbergallee",
+    "date": "2025-06-17",
+    "time": "12:42:36",
+    "total": 7.04,
+    "currency": "EUR",
+    "discount": null,
+    "items": [
+      {
+        "name": "SPIESSBR-BROETCH",
+        "quantity": 1,
+        "price": 2.9,
+        "category": "groceries"
+      },
+      {
+        "name": "HI-S BAUCH BROET",
+        "quantity": 1,
+        "price": 2.9,
+        "category": "groceries"
+      },
+      {
+        "name": "MIO MATE GINGER",
+        "quantity": 1,
+        "price": 1.09,
+        "category": "groceries"
+      },
+      {
+        "name": "PFAND 0,15 EUR",
+        "quantity": 1,
+        "price": 0.15,
+        "category": "misc"
+      }
+    ]
+  }
+}
+2025-06-18T00:33:41.769Z [LOG] 18.06.2025, 02:33:41.769: Executing step 1 with action: create_transaction
+2025-06-18T00:33:41.769Z [LOG] 18.06.2025, 02:33:41.769: Executing create_transaction
+2025-06-18T00:33:41.796Z [LOG] 18.06.2025, 02:33:41.796: ✅ Created transaction: REWE Altenhöferallee/Riedbergallee - 7.04 EUR (ID: 88)
+2025-06-18T00:33:41.797Z [LOG] 18.06.2025, 02:33:41.796: Results before serialization: [
+  {
+    "success": true,
+    "message": "✅ Added transaction for REWE Altenhöferallee/Riedbergallee on 2025-06-17 in EUR for total of 7.04 EUR. Synced to both databases (Original ID: undefined, Firefly ID: undefined)"
+  }
+]
+2025-06-18T00:33:41.797Z [LOG] 18.06.2025, 02:33:41.797: Interpreting results for user summary...
+2025-06-18T00:33:41.797Z [LOG] 18.06.2025, 02:33:41.797: Sanitized results for interpreter: [
+  {
+    "success": true,
+    "message": "✅ Added transaction for REWE Altenhöferallee/Riedbergallee on 2025-06-17 in EUR for total of 7.04 EUR. Synced to both databases (Original ID: undefined, Firefly ID: undefined)",
+    "error": null,
+    "event": null,
+    "data": null,
+    "query": null,
+    "url": null,
+    "company": null,
+    "details": null,
+    "migration_description": null,
+    "sql_statements": null,
+    "messages": null,
+    "total": null,
+    "result": null,
+    "message_id": null
+  }
+]
+2025-06-18T00:33:42.923Z [LOG] 18.06.2025, 02:33:42.923: Interpreter summary: Added transaction for REWE Altenhöferallee/Riedbergallee on June 17, 2025, for a total of 7.04 EUR.
+2025-06-18T00:33:42.925Z [LOG] 18.06.2025, 02:33:42.925: [BOT] Response from API for photo for chatId 1931272012: "Added transaction for REWE Altenhöferallee/Riedbergallee on June 17, 2025, for a total of 7.04 EUR."
+2025-06-18T00:34:36.657Z [LOG] 18.06.2025, 02:34:36.656: [BOT] Message from chatId 1931272012: "delete transaction named test simple shop"
+2025-06-18T00:34:36.766Z [LOG] 18.06.2025, 02:34:36.766: [BOT] Attempting to POST to: http://100.91.174.117:3000/ai/natural
+2025-06-18T00:34:36.771Z [LOG] 18.06.2025, 02:34:36.770: Received command: delete transaction named test simple shop
+2025-06-18T00:34:36.771Z [ERROR] FATAL: Failed to load database schema DDL: {}
+2025-06-18T00:34:36.772Z [LOG] 18.06.2025, 02:34:36.771: Sending command to OpenAI for action decision...
+2025-06-18T00:34:38.060Z [LOG] 18.06.2025, 02:34:38.059: 1. OpenAI Action Response: {
+  "role": "assistant",
+  "content": null,
+  "tool_calls": [
+    {
+      "id": "call_qOEZOVKUW8GSx9eqHR81ErSi",
+      "type": "function",
+      "function": {
+        "name": "handle_natural_command",
+        "arguments": "{\"action\":\"execute_sql_query\",\"query\":\"DELETE FROM transactions WHERE shop = 'test simple shop'\"}"
+      }
+    }
+  ],
+  "refusal": null,
+  "annotations": []
+}
+2025-06-18T00:34:38.060Z [LOG] 18.06.2025, 02:34:38.060: 1.a OpenAI Action Response Object {"role":"assistant","content":null,"tool_calls":[{"id":"call_qOEZOVKUW8GSx9eqHR81ErSi","type":"function","function":{"name":"handle_natural_command","arguments":"{\"action\":\"execute_sql_query\",\"query\":\"DELETE FROM transactions WHERE shop = 'test simple shop'\"}"}}],"refusal":null,"annotations":[]}
+2025-06-18T00:34:38.061Z [LOG] 18.06.2025, 02:34:38.060: Parsed Args {"action":"execute_sql_query","query":"DELETE FROM transactions WHERE shop = 'test simple shop'"}
+2025-06-18T00:34:38.061Z [LOG] 18.06.2025, 02:34:38.061: AI Decision (Validated): {
+  "action": "execute_sql_query",
+  "query": "DELETE FROM transactions WHERE shop = 'test simple shop'"
+}
+2025-06-18T00:34:38.061Z [LOG] 18.06.2025, 02:34:38.061: Executing step 1 with action: execute_sql_query
+2025-06-18T00:34:38.062Z [LOG] 18.06.2025, 02:34:38.062: Executing execute_sql_query
+2025-06-18T00:34:38.062Z [LOG] 18.06.2025, 02:34:38.062: SQL Query from AI: DELETE FROM transactions WHERE shop = 'test simple shop'
+2025-06-18T00:34:38.067Z [LOG] 18.06.2025, 02:34:38.067: Results before serialization: [
+  {
+    "success": true,
+    "data": {
+      "changes": 1,
+      "lastID": 0,
+      "message": "DML query executed successfully."
+    },
+    "query": "DELETE FROM transactions WHERE shop = 'test simple shop'",
+    "message": "SQL query executed."
+  }
+]
+2025-06-18T00:34:38.067Z [LOG] 18.06.2025, 02:34:38.067: Sanitized results for interpreter: [
+  {
+    "success": true,
+    "message": "SQL query executed.",
+    "error": null,
+    "event": null,
+    "data": {
+      "changes": 1,
+      "lastID": 0,
+      "message": "DML query executed successfully."
+    },
+    "query": "DELETE FROM transactions WHERE shop = 'test simple shop'",
+    "url": null,
+    "company": null,
+    "details": null,
+    "migration_description": null,
+    "sql_statements": null,
+    "messages": null,
+    "total": null,
+    "result": null,
+    "message_id": null
+  }
+]
+2025-06-18T00:34:38.068Z [LOG] 18.06.2025, 02:34:38.067: Interpreting results for user summary...
+2025-06-18T00:34:39.239Z [LOG] 18.06.2025, 02:34:39.238: Interpreter summary: Query successful. 1 row affected.
+2025-06-18T00:34:39.241Z [LOG] 18.06.2025, 02:34:39.240: [BOT] Response from API for chatId 1931272012: "Query successful. 1 row affected."
+2025-06-18T00:36:23.954Z [LOG] 18.06.2025, 02:36:23.954: [BOT] Photo received from chatId 1931272012
+2025-06-18T00:36:24.001Z [LOG] 18.06.2025, 02:36:24.001: [BOT] Using command for photo: "Process this image"
+2025-06-18T00:36:24.337Z [LOG] 18.06.2025, 02:36:24.337: Received command: Process this image
+2025-06-18T00:36:24.338Z [ERROR] FATAL: Failed to load database schema DDL: {}
+2025-06-18T00:36:24.338Z [LOG] 18.06.2025, 02:36:24.338: [IMG] Received file: telegram-image-1750206984002.jpg, MIME type: image/jpeg, Saved at: uploads/1750206984270-telegram-image-1750206984002.jpg
+2025-06-18T00:36:24.339Z [LOG] 18.06.2025, 02:36:24.338: [IMG] File is already JPEG. Using as is: uploads/1750206984270-telegram-image-1750206984002.jpg
+2025-06-18T00:36:24.340Z [LOG] 18.06.2025, 02:36:24.339: Sending command to OpenAI for action decision...
+2025-06-18T00:36:31.380Z [LOG] 18.06.2025, 02:36:31.380: 1. OpenAI Action Response: {
+  "role": "assistant",
+  "content": null,
+  "tool_calls": [
+    {
+      "id": "call_qUA13YMx6yKHqnbzm6VptIg1",
+      "type": "function",
+      "function": {
+        "name": "handle_natural_command",
+        "arguments": "{\"action\":\"create_transaction\",\"transaction\":{\"shop\":\"dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main\",\"date\":\"2025-06-17\",\"time\":\"13:39:00\",\"total\":2.7,\"currency\":\"EUR\",\"discount\":null,\"items\":[{\"name\":\"Sportness 34% Protrl Peanut 40g\",\"quantity\":2,\"price\":0.85,\"category\":\"groceries\"},{\"name\":\"ebelin Nagelknipser 1St\",\"quantity\":1,\"price\":1.85,\"category\":\"cosmetics\"}]}}"
+      }
+    }
+  ],
+  "refusal": null,
+  "annotations": []
+}
+2025-06-18T00:36:31.381Z [LOG] 18.06.2025, 02:36:31.381: Parsed Args {"action":"create_transaction","transaction":{"shop":"dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main","date":"2025-06-17","time":"13:39:00","total":2.7,"currency":"EUR","discount":null,"items":[{"name":"Sportness 34% Protrl Peanut 40g","quantity":2,"price":0.85,"category":"groceries"},{"name":"ebelin Nagelknipser 1St","quantity":1,"price":1.85,"category":"cosmetics"}]}}
+2025-06-18T00:36:31.382Z [LOG] 18.06.2025, 02:36:31.381: AI Decision (Validated): {
+  "action": "create_transaction",
+  "transaction": {
+    "shop": "dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main",
+    "date": "2025-06-17",
+    "time": "13:39:00",
+    "total": 2.7,
+    "currency": "EUR",
+    "discount": null,
+    "items": [
+      {
+        "name": "Sportness 34% Protrl Peanut 40g",
+        "quantity": 2,
+        "price": 0.85,
+        "category": "groceries"
+      },
+      {
+        "name": "ebelin Nagelknipser 1St",
+        "quantity": 1,
+        "price": 1.85,
+        "category": "cosmetics"
+      }
+    ]
+  }
+}
+2025-06-18T00:36:31.381Z [LOG] 18.06.2025, 02:36:31.380: 1.a OpenAI Action Response Object {"role":"assistant","content":null,"tool_calls":[{"id":"call_qUA13YMx6yKHqnbzm6VptIg1","type":"function","function":{"name":"handle_natural_command","arguments":"{\"action\":\"create_transaction\",\"transaction\":{\"shop\":\"dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main\",\"date\":\"2025-06-17\",\"time\":\"13:39:00\",\"total\":2.7,\"currency\":\"EUR\",\"discount\":null,\"items\":[{\"name\":\"Sportness 34% Protrl Peanut 40g\",\"quantity\":2,\"price\":0.85,\"category\":\"groceries\"},{\"name\":\"ebelin Nagelknipser 1St\",\"quantity\":1,\"price\":1.85,\"category\":\"cosmetics\"}]}}"}}],"refusal":null,"annotations":[]}
+2025-06-18T00:36:31.382Z [LOG] 18.06.2025, 02:36:31.382: Executing step 1 with action: create_transaction
+2025-06-18T00:36:31.382Z [LOG] 18.06.2025, 02:36:31.382: Executing create_transaction
+2025-06-18T00:36:31.390Z [LOG] 18.06.2025, 02:36:31.390: ✅ Created transaction: dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main - 2.7 EUR (ID: 89)
+2025-06-18T00:36:31.390Z [LOG] 18.06.2025, 02:36:31.390: Results before serialization: [
+  {
+    "success": true,
+    "message": "✅ Added transaction for dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main on 2025-06-17 in EUR for total of 2.7 EUR. Synced to both databases (Original ID: undefined, Firefly ID: undefined)"
+  }
+]
+2025-06-18T00:36:31.391Z [LOG] 18.06.2025, 02:36:31.390: Sanitized results for interpreter: [
+  {
+    "success": true,
+    "message": "✅ Added transaction for dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main on 2025-06-17 in EUR for total of 2.7 EUR. Synced to both databases (Original ID: undefined, Firefly ID: undefined)",
+    "error": null,
+    "event": null,
+    "data": null,
+    "query": null,
+    "url": null,
+    "company": null,
+    "details": null,
+    "migration_description": null,
+    "sql_statements": null,
+    "messages": null,
+    "total": null,
+    "result": null,
+    "message_id": null
+  }
+]
+2025-06-18T00:36:31.391Z [LOG] 18.06.2025, 02:36:31.391: Interpreting results for user summary...
+2025-06-18T00:36:32.924Z [LOG] 18.06.2025, 02:36:32.923: Interpreter summary: Added transaction for dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main on June 17, 2025, for a total of €2.70.
+2025-06-18T00:36:32.926Z [LOG] 18.06.2025, 02:36:32.926: [BOT] Response from API for photo for chatId 1931272012: "Added transaction for dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main on June 17, 2025, for a total of €2.70."
