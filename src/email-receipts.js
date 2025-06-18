@@ -606,9 +606,84 @@ function startEmailMonitoring() {
   console.log('⏰ Email monitoring scheduled every 15 minutes');
 }
 
+/**
+ * Search Gmail for receipts with specific query and optionally download attachments
+ */
+async function searchGmailForReceipts(query, maxResults = 20, downloadAttachments = false) {
+  try {
+    console.log(`🔍 Searching Gmail with query: ${query}`);
+    
+    // Get authenticated client
+    const app = require('express')(); // Minimal express instance for auth
+    const auth = await authenticate(app);
+    const validAuth = await ensureValidToken(auth, app);
+    
+    // Search for emails
+    const messages = await listMessages(validAuth, query, maxResults);
+    
+    if (!messages || messages.length === 0) {
+      console.log('📭 No emails found matching query');
+      return { emails: [], attachments: [] };
+    }
+    
+    console.log(`📬 Found ${messages.length} email(s) matching query`);
+    
+    const results = {
+      emails: [],
+      attachments: []
+    };
+    
+    for (const messageRef of messages) {
+      try {
+        // Get full email content
+        const email = await getMessage(validAuth, messageRef.id);
+        const emailInfo = extractEmailInfo(email);
+        
+        results.emails.push({
+          id: email.id,
+          from: emailInfo.from,
+          subject: emailInfo.subject,
+          date: emailInfo.date,
+          snippet: emailInfo.snippet
+        });
+        
+        // Download attachments if requested
+        if (downloadAttachments) {
+          console.log(`📎 Checking attachments for email: ${emailInfo.subject}`);
+          const attachments = await processEmailAttachments(validAuth, email);
+          
+          for (const attachment of attachments) {
+            results.attachments.push({
+              path: attachment.path,
+              mimeType: attachment.mimeType,
+              originalName: attachment.originalName,
+              emailId: email.id,
+              emailSubject: emailInfo.subject
+            });
+          }
+        }
+        
+        // Add delay between emails to avoid rate limits
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+      } catch (error) {
+        console.error(`❌ Error processing email ${messageRef.id}:`, error);
+      }
+    }
+    
+    console.log(`✅ Processed ${results.emails.length} emails with ${results.attachments.length} attachments`);
+    return results;
+    
+  } catch (error) {
+    console.error('❌ Error searching Gmail for receipts:', error);
+    throw new Error(`Gmail search failed: ${error.message}`);
+  }
+}
+
 module.exports = {
   checkForReceiptEmails,
   startEmailMonitoring,
+  searchGmailForReceipts,
   isLikelyReceipt,
   classifyReceiptEmail,
   extractTransactionFromPDF,

@@ -6,16 +6,19 @@ This is a personal AI finance assistant with comprehensive receipt scanning, exp
 
 ### Core Functionality
 - **AI-powered receipt processing** via Telegram and web interface
+- **Agentic multi-step task execution** with intelligent planning and fallbacks
 - **Simple finance database** with detailed item tracking
 - **Custom responsive dashboard** with real-time analytics
 - **Bank statement reconciliation** with PDF parsing and automatic matching
 - **Multi-currency support** with automatic conversion to CHF
+- **Automated email monitoring** for receipt processing every 15 minutes
+- **Duplicate detection** using receipt/invoice numbers
 - **Tailscale integration** for secure remote access
 
 ### Database Schema (finance database)
 ```sql
 -- Main transaction storage
-transactions: id, shop, date, time, total, currency, receipt_path, account_id
+transactions: id, shop, date, time, total, currency, receipt_path, account_id, receipt_number
 
 -- Detailed item breakdown for each transaction  
 items: id, transaction_id, name, quantity, price, category
@@ -26,6 +29,8 @@ income: id, type, amount, date, description, account_id
 -- Account management
 accounts: id, name, description, type, balance
 ```
+
+**Note**: `receipt_number` field added for duplicate detection using extracted invoice/receipt numbers from PDFs.
 
 ## Key Features Implementation
 
@@ -50,17 +55,48 @@ accounts: id, name, description, type, balance
 - **Interactive Review**: Approve/edit/ignore interface for discrepancies
 - **Batch Apply**: Update database with correct amounts and create missing transactions
 
+### 4. Agentic Task Execution (NEW)
+- **Multi-step planning**: AI creates intelligent plans for complex requests
+- **Conditional execution**: Steps execute based on context and previous results
+- **Intelligent fallbacks**: Alternative approaches when primary methods fail
+- **Progress tracking**: Real-time updates via Telegram during execution
+- **Smart confirmations**: User input requested only when confidence is low
+- **File & email search**: Unified search across local files and Gmail
+- **Batch processing**: Handle multiple receipts from various sources simultaneously
+
+#### Example Agentic Commands:
+- `"add all my Anthropic receipts from this week"` → Searches files, then Gmail, processes all found receipts
+- `"find and process all Amazon receipts from last month"` → Date-range search + batch processing
+- `"search for any grocery receipts in the last 7 days"` → Pattern + time-based search
+
+### 5. Automated Email Monitoring
+- **Continuous monitoring**: Checks Gmail every 15 minutes for receipt emails
+- **Smart filtering**: 23+ known vendor patterns + subject line analysis
+- **AI classification**: Confidence-based processing (70%+ auto-process, <70% manual review)
+- **Duplicate prevention**: Uses extracted receipt numbers to prevent reprocessing
+- **Attachment handling**: Downloads and processes PDF receipts automatically
+
 ## API Endpoints
 
 ### Core Finance Operations
-- `POST /ai/natural` - Process natural language commands and receipt images
+- `POST /ai/natural` - Process natural language commands and receipt images (supports agentic planning)
 - `GET /api/dashboard-data` - Get spending analytics and transaction data
 - `POST /api/reconcile-statement` - Upload and process bank statement PDF
 - `POST /api/apply-reconciliation` - Apply approved reconciliation changes
+- `POST /api/process-receipt` - Process individual receipt files (PDF/image)
+- `GET /api/check-receipts` - Manually trigger email receipt monitoring
+- `GET /api/receipt-senders` - Get list of known receipt sender patterns
 
 ### Dashboard Access
 - `GET /dashboard` - Main spending dashboard
 - `GET /reconciliation` - Bank statement reconciliation interface
+
+### Agentic Actions (via /ai/natural)
+- `execute_plan` - Multi-step task execution with intelligent planning
+- `search_files` - Search local files with patterns and time constraints
+- `search_gmail` - Search Gmail for receipts with attachment download
+- `process_multiple_receipts` - Batch process receipts from multiple sources
+- `request_confirmation` - Interactive user confirmation system
 
 ## User Workflow
 
@@ -81,6 +117,21 @@ accounts: id, name, description, type, balance
    - Flags unmatched transactions
 4. User reviews and approves corrections
 5. System applies all changes to maintain accurate financial records
+
+### Agentic Workflows (NEW)
+1. **Complex Commands**: User sends natural language requests like "add all my Anthropic receipts from this week"
+2. **Intelligent Planning**: AI creates multi-step execution plan with fallbacks
+3. **Autonomous Execution**: System searches files, Gmail, processes receipts automatically
+4. **Progress Updates**: Real-time notifications sent via Telegram during execution
+5. **Smart Confirmations**: User asked for input only when confidence is low (<80%)
+6. **Adaptive Behavior**: System learns from context and adjusts approach dynamically
+
+### Automated Background Processing
+1. **Email Monitoring**: System checks Gmail every 15 minutes for new receipts
+2. **Vendor Recognition**: Uses 23+ known sender patterns + AI classification
+3. **Automatic Processing**: High-confidence receipts (≥70%) processed automatically
+4. **Duplicate Prevention**: Receipt numbers extracted to prevent reprocessing
+5. **Manual Review Queue**: Low-confidence items flagged for user review
 
 ## Key Design Principles
 
@@ -108,6 +159,14 @@ accounts: id, name, description, type, balance
 - **File upload validation** with size and type limits
 - **Parameterized queries** to prevent SQL injection
 
+### 5. Agentic Intelligence (NEW)
+- **Multi-step reasoning** instead of single-action responses
+- **Intelligent fallbacks** when primary approaches fail
+- **Context-aware decisions** based on previous step results
+- **User confirmation** only when confidence is genuinely low
+- **Progress transparency** with real-time updates
+- **Adaptive behavior** that learns from user patterns
+
 ## Implementation Notes
 
 ### Database Connection
@@ -123,9 +182,13 @@ accounts: id, name, description, type, balance
 
 ### AI Integration
 - OpenAI GPT-4 for receipt text extraction and categorization
-- Structured JSON responses with validation
+- **Agentic planning system** for multi-step task execution
+- Structured JSON responses with validation (Zod schemas)
 - Error handling and fallback for API failures
 - Context-aware transaction processing
+- **Confidence-based decision making** (80% threshold for auto-processing)
+- **Intelligent search** across files and Gmail with pattern matching
+- **Duplicate detection** using extracted receipt/invoice numbers
 
 ### Telegram Integration
 - Bot for instant receipt scanning
@@ -180,10 +243,25 @@ accounts: id, name, description, type, balance
 
 When helping with this system:
 
+### Database Queries
 1. **Check transaction data**: `SELECT * FROM transactions ORDER BY date DESC LIMIT 10`
 2. **View recent items**: `SELECT t.shop, i.name, i.price FROM transactions t JOIN items i ON t.id = i.transaction_id ORDER BY t.date DESC LIMIT 20`
-3. **Test dashboard**: `curl http://localhost:3000/api/dashboard-data`
-4. **Check reconciliation**: `curl http://localhost:3000/reconciliation`
-5. **View logs**: `tail -f error.log`
+3. **Check duplicates**: `SELECT receipt_number, COUNT(*) FROM transactions WHERE receipt_number IS NOT NULL GROUP BY receipt_number HAVING COUNT(*) > 1`
 
-Remember: This system prioritizes simplicity, accuracy, and user experience over complex financial features.
+### API Testing
+4. **Test dashboard**: `curl http://localhost:3000/api/dashboard-data`
+5. **Check reconciliation**: `curl http://localhost:3000/reconciliation`
+6. **Trigger email check**: `curl http://localhost:3000/api/check-receipts`
+7. **Test agentic search**: Send "find all receipts from this week" to Telegram bot
+
+### Monitoring
+8. **View logs**: `tail -f error.log`
+9. **Check email monitoring**: `grep "📧 Checking for new receipt emails" error.log | tail -5`
+10. **View agentic plans**: `grep "🎯 Starting agentic plan" error.log | tail -5`
+
+### Agentic Commands to Test
+- `"add all my Anthropic receipts from this week"`
+- `"find and process all Amazon receipts from last month"`
+- `"search for any grocery receipts in the last 7 days"`
+
+Remember: This system now combines simplicity with intelligent agentic behavior - it can plan and execute complex multi-step tasks while maintaining user control and transparency.

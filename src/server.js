@@ -1158,6 +1158,93 @@ app.post('/ai/natural', upload.single('image'), async (req, res) => {
       }
       return res.json({ message: directResponse, details: [{ success: true, message: directResponse }] });
 
+    // AGENTIC ACTIONS ---------------------------------------------------------------------------------------------------------------------
+    } else if (aiDecision.action === 'search_files') {
+      console.log('Executing search_files');
+      const { pattern, directory = 'uploads', timespan, max_results = 50 } = aiDecision;
+      
+      try {
+        const results = await searchFiles(pattern, directory, timespan, max_results);
+        stepResults.push({
+          success: true,
+          files: results,
+          count: results.length,
+          message: `Found ${results.length} files matching pattern '${pattern}'`
+        });
+      } catch (err) {
+        stepResults.push({ success: false, error: err.message });
+      }
+
+    } else if (aiDecision.action === 'search_gmail') {
+      console.log('Executing search_gmail');
+      const { query, max_results = 20, download_attachments = false } = aiDecision;
+      
+      try {
+        const { searchGmailForReceipts } = require('./email-receipts');
+        const results = await searchGmailForReceipts(query, max_results, download_attachments);
+        stepResults.push({
+          success: true,
+          emails: results.emails,
+          attachments: results.attachments,
+          count: results.emails.length,
+          message: `Found ${results.emails.length} emails with ${results.attachments.length} attachments`
+        });
+      } catch (err) {
+        stepResults.push({ success: false, error: err.message });
+      }
+
+    } else if (aiDecision.action === 'process_multiple_receipts') {
+      console.log('Executing process_multiple_receipts');
+      const { sources, file_paths, email_attachments, confirmation_threshold = 80 } = aiDecision;
+      
+      try {
+        const results = await processMultipleReceipts(sources, file_paths, email_attachments, confirmation_threshold);
+        stepResults.push({
+          success: true,
+          processed: results.processed,
+          failed: results.failed,
+          needs_confirmation: results.needs_confirmation,
+          message: `Processed ${results.processed.length} receipts, ${results.failed.length} failed, ${results.needs_confirmation.length} need confirmation`
+        });
+      } catch (err) {
+        stepResults.push({ success: false, error: err.message });
+      }
+
+    } else if (aiDecision.action === 'request_confirmation') {
+      console.log('Executing request_confirmation');
+      const { message, options, context } = aiDecision;
+      
+      // Store confirmation request for Telegram response
+      stepResults.push({
+        success: true,
+        type: 'confirmation_request',
+        message: message,
+        options: options || ['Yes', 'No'],
+        context: context,
+        awaiting_response: true
+      });
+
+    } else if (aiDecision.action === 'execute_plan') {
+      console.log('Executing agentic plan:', aiDecision.goal);
+      const { goal, steps, confirmation_needed = false, progress_updates = true } = aiDecision;
+      
+      try {
+        const planResults = await executeAgenticPlan(goal, steps, confirmation_needed, progress_updates, isTelegramOrigin);
+        stepResults.push({
+          success: true,
+          plan: goal,
+          steps: planResults.steps,
+          summary: planResults.summary,
+          message: planResults.message
+        });
+      } catch (err) {
+        stepResults.push({ 
+          success: false, 
+          error: err.message,
+          plan: goal
+        });
+      }
+
     } else {
       throw new Error('Unknown action');
     }
@@ -1311,7 +1398,372 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Ensure 'uploads' directory exists
+// AGENTIC HELPER FUNCTIONS ---------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Search for files matching pattern with time constraints
+ */
+async function searchFiles(pattern, directory, timespan, maxResults) {
+  const glob = require('glob');
+  const stat = require('fs').promises.stat;
+  
+  try {
+    const searchDir = path.resolve(directory);
+    const searchPattern = path.join(searchDir, pattern);
+    
+    console.log(`🔍 Searching files: ${searchPattern}`);
+    
+    const files = glob.sync(searchPattern, { nodir: true });
+    let results = [];
+    
+    for (const file of files) {
+      try {
+        const stats = await stat(file);
+        const fileInfo = {
+          path: file,
+          name: path.basename(file),
+          size: stats.size,
+          modified: stats.mtime,
+          age_days: Math.floor((Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60 * 24))
+        };
+        
+        // Apply timespan filter if specified
+        if (timespan) {
+          const match = timespan.match(/^(\d+)([dwm])$/);
+          if (match) {
+            const value = parseInt(match[1]);
+            const unit = match[2];
+            const daysMap = { d: 1, w: 7, m: 30 };
+            const maxDays = value * daysMap[unit];
+            
+            if (fileInfo.age_days <= maxDays) {
+              results.push(fileInfo);
+            }
+          } else {
+            results.push(fileInfo);
+          }
+        } else {
+          results.push(fileInfo);
+        }
+      } catch (err) {
+        console.error(`Error processing file ${file}:`, err.message);
+      }
+    }
+    
+    // Sort by modification time (newest first) and limit results
+    results.sort((a, b) => b.modified.getTime() - a.modified.getTime());
+    return results.slice(0, maxResults);
+    
+  } catch (err) {
+    console.error('File search error:', err);
+    throw new Error(`File search failed: ${err.message}`);
+  }
+}
+
+/**
+ * Process multiple receipts from various sources
+ */
+async function processMultipleReceipts(sources, filePaths, emailAttachments, confirmationThreshold) {
+  const results = {
+    processed: [],
+    failed: [],
+    needs_confirmation: []
+  };
+  
+  const allFiles = [];
+  
+  // Collect files from different sources
+  if (sources.includes('files') && filePaths) {
+    allFiles.push(...filePaths.map(fp => ({ path: fp, source: 'file' })));
+  }
+  
+  if (sources.includes('gmail') && emailAttachments) {
+    allFiles.push(...emailAttachments.map(fp => ({ path: fp, source: 'gmail' })));
+  }
+  
+  console.log(`📋 Processing ${allFiles.length} receipts from sources: ${sources.join(', ')}`);
+  
+  for (const file of allFiles) {
+    try {
+      console.log(`📄 Processing ${file.source} receipt: ${path.basename(file.path)}`);
+      
+      // Use existing receipt processing logic
+      const FormData = require('form-data');
+      const formData = new FormData();
+      const fileStream = require('fs').createReadStream(file.path);
+      const fileName = path.basename(file.path);
+      
+      formData.append('file', fileStream, fileName);
+      formData.append('command', 'Process this receipt');
+      
+      const axios = require('axios');
+      const response = await axios.post(`http://localhost:${PORT}/api/process-receipt`, formData, {
+        headers: formData.getHeaders(),
+        timeout: 30000
+      });
+      
+      if (response.data.success) {
+        const confidence = response.data.confidence || 100;
+        
+        if (confidence >= confirmationThreshold) {
+          results.processed.push({
+            file: fileName,
+            source: file.source,
+            transaction: response.data.transaction,
+            confidence: confidence
+          });
+        } else {
+          results.needs_confirmation.push({
+            file: fileName,
+            source: file.source,
+            extracted_data: response.data.extracted_data,
+            confidence: confidence,
+            reason: `Low confidence (${confidence}%)`
+          });
+        }
+      } else {
+        results.failed.push({
+          file: fileName,
+          source: file.source,
+          error: response.data.message || 'Unknown error',
+          confidence: response.data.confidence
+        });
+      }
+      
+      // Add delay between processing to avoid overwhelming the system
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+    } catch (err) {
+      console.error(`Error processing ${file.path}:`, err.message);
+      results.failed.push({
+        file: path.basename(file.path),
+        source: file.source,
+        error: err.message
+      });
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Execute agentic plan with step-by-step processing
+ */
+async function executeAgenticPlan(goal, steps, confirmationNeeded, progressUpdates, isTelegramOrigin) {
+  console.log(`🎯 Starting agentic plan: ${goal}`);
+  
+  const planResults = {
+    steps: [],
+    summary: '',
+    message: '',
+    context: {}
+  };
+  
+  // Send initial progress update
+  if (progressUpdates && !isTelegramOrigin) {
+    await logToAdminTelegram(`🎯 Starting plan: ${goal}`, "Agentic Plan");
+  }
+  
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    console.log(`📋 Executing step ${i + 1}/${steps.length}: ${step.description || step.action}`);
+    
+    // Check step condition
+    if (step.condition && !evaluateCondition(step.condition, planResults.context)) {
+      console.log(`⏭️ Skipping step due to condition: ${step.condition}`);
+      planResults.steps.push({
+        step: i + 1,
+        action: step.action,
+        skipped: true,
+        reason: `Condition not met: ${step.condition}`
+      });
+      continue;
+    }
+    
+    // Send progress update
+    if (progressUpdates && !isTelegramOrigin) {
+      await logToAdminTelegram(`📋 Step ${i + 1}/${steps.length}: ${step.description || step.action}`, "Agentic Plan");
+    }
+    
+    try {
+      // Execute the step action
+      const stepResult = await executeStepAction(step.action, step.parameters);
+      
+      planResults.steps.push({
+        step: i + 1,
+        action: step.action,
+        success: stepResult.success,
+        result: stepResult,
+        description: step.description
+      });
+      
+      // Update context for future steps
+      updatePlanContext(planResults.context, step.action, stepResult);
+      
+      if (!stepResult.success && step.fallback) {
+        console.log(`🔄 Executing fallback for step ${i + 1}`);
+        const fallbackResult = await executeStepAction(step.fallback.action, step.fallback.parameters);
+        
+        planResults.steps.push({
+          step: i + 1,
+          action: step.fallback.action,
+          success: fallbackResult.success,
+          result: fallbackResult,
+          description: `Fallback: ${step.fallback.action}`,
+          is_fallback: true
+        });
+        
+        updatePlanContext(planResults.context, step.fallback.action, fallbackResult);
+      }
+      
+    } catch (err) {
+      console.error(`❌ Step ${i + 1} failed:`, err.message);
+      planResults.steps.push({
+        step: i + 1,
+        action: step.action,
+        success: false,
+        error: err.message,
+        description: step.description
+      });
+      
+      // Try fallback if available
+      if (step.fallback) {
+        try {
+          console.log(`🔄 Executing fallback for failed step ${i + 1}`);
+          const fallbackResult = await executeStepAction(step.fallback.action, step.fallback.parameters);
+          
+          planResults.steps.push({
+            step: i + 1,
+            action: step.fallback.action,
+            success: fallbackResult.success,
+            result: fallbackResult,
+            description: `Fallback: ${step.fallback.action}`,
+            is_fallback: true
+          });
+          
+          updatePlanContext(planResults.context, step.fallback.action, fallbackResult);
+          
+        } catch (fallbackErr) {
+          console.error(`❌ Fallback also failed:`, fallbackErr.message);
+        }
+      }
+    }
+  }
+  
+  // Generate summary
+  const successfulSteps = planResults.steps.filter(s => s.success && !s.skipped).length;
+  const totalSteps = steps.length;
+  
+  planResults.summary = `Completed ${successfulSteps}/${totalSteps} steps successfully`;
+  planResults.message = `Plan "${goal}" completed with ${successfulSteps}/${totalSteps} successful steps`;
+  
+  // Send final progress update
+  if (progressUpdates && !isTelegramOrigin) {
+    await logToAdminTelegram(`✅ Plan completed: ${planResults.summary}`, "Agentic Plan");
+  }
+  
+  console.log(`✅ Plan completed: ${planResults.summary}`);
+  return planResults;
+}
+
+/**
+ * Evaluate step conditions
+ */
+function evaluateCondition(condition, context) {
+  switch (condition) {
+    case 'if_no_files_found':
+      return !context.files_found || context.files_found.length === 0;
+    case 'if_files_found':
+      return context.files_found && context.files_found.length > 0;
+    case 'if_confidence_low':
+      return context.avg_confidence && context.avg_confidence < 80;
+    case 'if_confidence_high':
+      return context.avg_confidence && context.avg_confidence >= 80;
+    default:
+      console.warn(`Unknown condition: ${condition}`);
+      return true; // Default to executing the step
+  }
+}
+
+/**
+ * Execute individual step action
+ */
+async function executeStepAction(action, parameters) {
+  switch (action) {
+    case 'search_files':
+      return await searchFiles(
+        parameters.pattern,
+        parameters.directory || 'uploads',
+        parameters.timespan,
+        parameters.max_results || 50
+      ).then(files => ({ success: true, files, count: files.length }))
+      .catch(err => ({ success: false, error: err.message }));
+      
+    case 'search_gmail':
+      try {
+        const { searchGmailForReceipts } = require('./email-receipts');
+        const results = await searchGmailForReceipts(
+          parameters.query,
+          parameters.max_results || 20,
+          parameters.download_attachments || false
+        );
+        return {
+          success: true,
+          emails: results.emails,
+          attachments: results.attachments,
+          count: results.emails.length
+        };
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+      
+    case 'process_multiple_receipts':
+      try {
+        const results = await processMultipleReceipts(
+          parameters.sources,
+          parameters.file_paths,
+          parameters.email_attachments,
+          parameters.confirmation_threshold || 80
+        );
+        return { success: true, ...results };
+      } catch (err) {
+        return { success: false, error: err.message };
+      }
+      
+    default:
+      throw new Error(`Unknown step action: ${action}`);
+  }
+}
+
+/**
+ * Update plan context with step results
+ */
+function updatePlanContext(context, action, result) {
+  if (action === 'search_files' && result.success) {
+    context.files_found = result.files || result;
+    context.files_count = result.count || (result.files ? result.files.length : 0);
+  }
+  
+  if (action === 'search_gmail' && result.success) {
+    context.emails_found = result.emails || [];
+    context.attachments_found = result.attachments || [];
+    context.emails_count = result.count || 0;
+  }
+  
+  if (action === 'process_multiple_receipts' && result.success) {
+    context.processed_receipts = result.processed || [];
+    context.failed_receipts = result.failed || [];
+    context.needs_confirmation = result.needs_confirmation || [];
+    
+    // Calculate average confidence
+    const allProcessed = [...(result.processed || []), ...(result.needs_confirmation || [])];
+    if (allProcessed.length > 0) {
+      const totalConfidence = allProcessed.reduce((sum, item) => sum + (item.confidence || 0), 0);
+      context.avg_confidence = totalConfidence / allProcessed.length;
+    }
+  }
+}
+
 // Ensure 'uploads' directory exists
 fs.mkdir(path.join(__dirname, 'uploads'), { recursive: true }).catch(console.error);
 

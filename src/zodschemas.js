@@ -177,6 +177,62 @@ const ProcessReceiptSchema = z.object({
   description: z.string().optional().default("Process this receipt").describe("Optional description of the receipt content"),
 });
 
+// Search Files action
+const SearchFilesSchema = z.object({
+  action: z.literal('search_files'),
+  pattern: z.string().describe("File pattern to search for (e.g., '*anthropic*receipt*', '*.pdf')"),
+  directory: z.string().optional().default("uploads").describe("Directory to search in"),
+  timespan: z.string().optional().describe("Time constraint (e.g., '7d', '1w', '1m' for days, weeks, months)"),
+  max_results: z.number().int().optional().default(50).describe("Maximum number of files to return"),
+});
+
+// Search Gmail action
+const SearchGmailSchema = z.object({
+  action: z.literal('search_gmail'),
+  query: z.string().describe("Gmail search query (e.g., 'from:billing@anthropic.com newer_than:7d')"),
+  max_results: z.number().int().optional().default(20).describe("Maximum number of emails to return"),
+  download_attachments: z.boolean().optional().default(false).describe("Whether to download PDF/image attachments"),
+});
+
+// Process Multiple Receipts action
+const ProcessMultipleReceiptsSchema = z.object({
+  action: z.literal('process_multiple_receipts'),
+  sources: z.array(z.string()).describe("Sources to process: ['files', 'gmail', 'both']"),
+  file_paths: z.array(z.string()).optional().describe("Specific file paths if sources includes 'files'"),
+  email_attachments: z.array(z.string()).optional().describe("Email attachment paths if sources includes 'gmail'"),
+  confirmation_threshold: z.number().optional().default(80).describe("Confidence threshold below which user confirmation is required"),
+});
+
+// Request Confirmation action
+const RequestConfirmationSchema = z.object({
+  action: z.literal('request_confirmation'),
+  message: z.string().describe("Message to display to user requesting confirmation"),
+  options: z.array(z.string()).optional().describe("Available options for user to choose from"),
+  context: z.record(z.any()).optional().describe("Context data to preserve for follow-up actions"),
+  timeout: z.number().int().optional().default(300).describe("Timeout in seconds for user response"),
+});
+
+// Agentic Plan Step
+const PlanStepSchema = z.object({
+  action: z.string().describe("Action to execute in this step"),
+  parameters: z.record(z.any()).describe("Parameters for the action"),
+  condition: z.string().optional().describe("Condition to check before executing (e.g., 'if_no_files_found', 'if_confidence_low')"),
+  fallback: z.object({
+    action: z.string(),
+    parameters: z.record(z.any())
+  }).optional().describe("Fallback action if main action fails"),
+  description: z.string().optional().describe("Human-readable description of this step"),
+});
+
+// Agentic Plan Execution action
+const ExecutePlanSchema = z.object({
+  action: z.literal('execute_plan'),
+  goal: z.string().describe("High-level goal this plan aims to accomplish"),
+  steps: z.array(PlanStepSchema).min(1).describe("Ordered list of steps to execute"),
+  confirmation_needed: z.boolean().optional().default(false).describe("Whether user confirmation is needed before execution"),
+  progress_updates: z.boolean().optional().default(true).describe("Whether to send progress updates to user"),
+});
+
 // Unified Actions Schema
 const UnifiedActionSchema = z.discriminatedUnion("action", [
   RespondSchema,
@@ -194,6 +250,11 @@ const UnifiedActionSchema = z.discriminatedUnion("action", [
   ProcessReceiptSchema,
   ScrapeJobsSchema,
   FavoriteJobSchema,
+  SearchFilesSchema,
+  SearchGmailSchema,
+  ProcessMultipleReceiptsSchema,
+  RequestConfirmationSchema,
+  ExecutePlanSchema,
 ]);
 
 module.exports = { UnifiedActionSchema };
