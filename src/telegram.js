@@ -139,10 +139,56 @@ bot.on('message', async (msg) => {
       console.error(`\x1b[31m[BOT-ERR]\x1b[0m Error processing photo for chatId ${chatId}:`, error.message);
       bot.sendMessage(chatId, errorMessage);
     }
+  }
+  // Handle PDF documents (receipts)
+  else if (msg.document && msg.document.mime_type === 'application/pdf') {
+    console.log(`\x1b[34m[BOT]\x1b[0m PDF document received from chatId ${chatId}`);
+    try {
+      await bot.sendChatAction(chatId, 'typing');
+
+      const formData = new FormData();
+      // If there's a caption with the PDF, use it as the command
+      const commandFromCaption = msg.caption || "Process this PDF receipt";
+      formData.append('command', commandFromCaption);
+      console.log(`\x1b[34m[BOT]\x1b[0m Using command for PDF: "${commandFromCaption}"`);
+
+      // Get the PDF file stream
+      const docMeta = msg.document;
+      const fileStream = bot.getFileStream(docMeta.file_id);
+
+      // Append the file stream to FormData
+      const filename = docMeta.file_name || `telegram-receipt-${Date.now()}.pdf`;
+      formData.append('image', fileStream, { filename });
+
+      const response = await axios.post(
+        `http://localhost:${PORT}/ai/natural`,
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(),
+            'X-Telegram-Origin': 'true'
+          },
+          timeout: 45000 // PDFs might take longer to process
+        }
+      );
+
+      console.log(`\x1b[32m[BOT]\x1b[0m Response from API for PDF for chatId ${chatId}: "${response.data.message}"`);
+      bot.sendMessage(chatId, response.data.message || 'PDF receipt processed.', { parse_mode: 'Markdown' });
+
+    } catch (error) {
+      let errorMessage = 'Sorry, something went wrong processing your PDF receipt.';
+      if (error.response && error.response.data && error.response.data.error) {
+        errorMessage = `Error: ${error.response.data.error}`;
+      } else if (error.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      console.error(`\x1b[31m[BOT-ERR]\x1b[0m Error processing PDF for chatId ${chatId}:`, error.message);
+      bot.sendMessage(chatId, errorMessage);
+    }
   } else {
     // Handle other message types or ignore
     console.log(`\x1b[34m[BOT]\x1b[0m Received unhandled message type from chatId ${chatId}:`, msg);
-    // bot.sendMessage(chatId, "I can only process text messages and photos for now.");
+    // bot.sendMessage(chatId, "I can process text messages, photos, and PDF receipts.");
   }
 });
 

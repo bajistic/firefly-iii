@@ -442,69 +442,108 @@ app.post('/ai/natural', upload.single('image'), async (req, res) => {
 
       console.log(`\x1b[32m[IMG]\x1b[0m Received file: ${originalFilename}, MIME type: ${mimeType}, Saved at: ${uploadedFilePath}`);
 
-      // Check if conversion is needed
-      // We want JPEG as the final format.
-      // Convert if it's HEIC, HEIF, PNG, or other common non-JPEG image types.
-      // 'image/jpg' is sometimes used instead of 'image/jpeg'.
-      const needsConversionToJpeg = ![
-        'image/jpeg',
-        'image/jpg'
-      ].includes(mimeType.toLowerCase());
-
-      if (needsConversionToJpeg) {
-        console.log(`\x1b[32m[IMG]\x1b[0m File type (${mimeType}) requires conversion to JPEG.`);
-        const parsedPath = path.parse(uploadedFilePath); // Parse the path multer saved it to
-        const jpegOutputFilename = `${parsedPath.name}.jpg`; // Create a .jpg filename
-        finalReceiptPathForDB = path.join(parsedPath.dir, jpegOutputFilename); // Full path for the new JPEG
-
-        console.log(`\x1b[32m[IMG]\x1b[0m Converting ${uploadedFilePath} to ${finalReceiptPathForDB}`);
-
+      // Handle PDF files
+      if (mimeType === 'application/pdf') {
+        console.log(`\x1b[32m[PDF]\x1b[0m Processing PDF receipt: ${originalFilename}`);
         try {
-          await sharp(uploadedFilePath) // Input is the file multer saved
-            .jpeg()                   // Convert to JPEG
-            .toFile(finalReceiptPathForDB);  // Output to the new .jpg path
-
-          console.log(`\x1b[32m[IMG]\x1b[0m Image successfully converted to ${finalReceiptPathForDB}`);
-
-          // Delete the original non-JPEG file after successful conversion,
-          // but only if the output path is different (it should be if extension changed or was added)
-          if (uploadedFilePath !== finalReceiptPathForDB) {
-            try {
-              await fs.unlink(uploadedFilePath);
-              console.log(`\x1b[32m[IMG]\x1b[0m Original non-JPEG file ${uploadedFilePath} unlinked.`);
-            } catch (unlinkErr) {
-              console.warn(`\x1b[33m[WARN]\x1b[0m Could not unlink original non-JPEG file ${uploadedFilePath}: ${unlinkErr.message}`);
-            }
+          // Use the PDF parsing from reconciliation module
+          const { parseBankStatement } = require('./reconciliation');
+          const parseResult = await parseBankStatement(uploadedFilePath);
+          
+          if (parseResult.success && parseResult.transactions.length > 0) {
+            // Use the first transaction from PDF as receipt data
+            const pdfTransaction = parseResult.transactions[0];
+            const pdfText = `PDF Receipt processed:
+Shop: ${pdfTransaction.description}
+Date: ${pdfTransaction.date}
+Amount: ${pdfTransaction.amount} ${pdfTransaction.currency}
+Raw text extracted from PDF for AI processing.`;
+            
+            // Add PDF content as text message to OpenAI
+            const userPdfMessage = { 
+              role: 'user', 
+              content: `${command} - PDF Receipt: ${pdfText}` 
+            };
+            messagesToOpenAI.push(userPdfMessage);
+            finalReceiptPathForDB = uploadedFilePath; // Store PDF path
+            
+            console.log(`\x1b[32m[PDF]\x1b[0m Successfully extracted ${parseResult.transactions.length} transactions from PDF`);
+          } else {
+            console.log(`\x1b[33m[PDF]\x1b[0m PDF parsing failed or no transactions found, treating as regular document`);
+            const userPdfMessage = { 
+              role: 'user', 
+              content: `${command} - PDF document uploaded: ${originalFilename}` 
+            };
+            messagesToOpenAI.push(userPdfMessage);
           }
-        } catch (err) {
-          console.error('\x1b[31m[ERR]\x1b[0m Sharp conversion error:', err.message);
-          results.push({ success: false, error: `Image conversion failed: ${err.message}` });
-          finalReceiptPathForDB = null; // Don't use any path if conversion failed
+        } catch (pdfError) {
+          console.error('\x1b[31m[ERR]\x1b[0m PDF processing error:', pdfError.message);
+          results.push({ success: false, error: `PDF processing failed: ${pdfError.message}` });
         }
-      } else {
-        // It's already a JPEG, use the path where multer saved it
-        console.log(`\x1b[32m[IMG]\x1b[0m File is already JPEG. Using as is: ${uploadedFilePath}`);
-        finalReceiptPathForDB = uploadedFilePath;
-      }
+      } 
+      // Handle image files
+      else {
+        // Check if conversion is needed
+        // We want JPEG as the final format.
+        // Convert if it's HEIC, HEIF, PNG, or other common non-JPEG image types.
+        // 'image/jpg' is sometimes used instead of 'image/jpeg'.
+        const needsConversionToJpeg = ![
+          'image/jpeg',
+          'image/jpg'
+        ].includes(mimeType.toLowerCase());
 
-      // If we have a valid path (either original JPEG or converted JPEG), process it for OpenAI
-      if (finalReceiptPathForDB) {
-        try {
-          base64ImageForHistoryAndProcessing = await fs.readFile(finalReceiptPathForDB, 'base64');
-          const imageMessageContent = [
-            { type: 'text', text: command ? `${command} - Image attached` : 'Process this image' },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64ImageForHistoryAndProcessing}` } },
-          ];
-          // Add imageMessageContent to messagesToOpenAI (your existing logic)
-          // e.g., messagesToOpenAI.push({ role: 'user', content: imageMessageContent });
-          // currentUserImageMessageForHistory = { role: 'user', content: imageMessageContent }; // if used
-          const userImageMessage = { role: 'user', content: imageMessageContent };
-          messagesToOpenAI.push(userImageMessage);
+        if (needsConversionToJpeg) {
+          console.log(`\x1b[32m[IMG]\x1b[0m File type (${mimeType}) requires conversion to JPEG.`);
+          const parsedPath = path.parse(uploadedFilePath); // Parse the path multer saved it to
+          const jpegOutputFilename = `${parsedPath.name}.jpg`; // Create a .jpg filename
+          finalReceiptPathForDB = path.join(parsedPath.dir, jpegOutputFilename); // Full path for the new JPEG
 
-        } catch (readErr) {
-          console.error('\x1b[31m[ERR]\x1b[0m Error reading processed image file for Base64 encoding:', readErr.message);
-          results.push({ success: false, error: `Failed to read image file: ${readErr.message}` });
-          finalReceiptPathForDB = null; // Can't use it if we can't read it
+          console.log(`\x1b[32m[IMG]\x1b[0m Converting ${uploadedFilePath} to ${finalReceiptPathForDB}`);
+
+          try {
+            await sharp(uploadedFilePath) // Input is the file multer saved
+              .jpeg()                   // Convert to JPEG
+              .toFile(finalReceiptPathForDB);  // Output to the new .jpg path
+
+            console.log(`\x1b[32m[IMG]\x1b[0m Image successfully converted to ${finalReceiptPathForDB}`);
+
+            // Delete the original non-JPEG file after successful conversion,
+            // but only if the output path is different (it should be if extension changed or was added)
+            if (uploadedFilePath !== finalReceiptPathForDB) {
+              try {
+                await fs.unlink(uploadedFilePath);
+                console.log(`\x1b[32m[IMG]\x1b[0m Original non-JPEG file ${uploadedFilePath} unlinked.`);
+              } catch (unlinkErr) {
+                console.warn(`\x1b[33m[WARN]\x1b[0m Could not unlink original non-JPEG file ${uploadedFilePath}: ${unlinkErr.message}`);
+              }
+            }
+          } catch (err) {
+            console.error('\x1b[31m[ERR]\x1b[0m Sharp conversion error:', err.message);
+            results.push({ success: false, error: `Image conversion failed: ${err.message}` });
+            finalReceiptPathForDB = null; // Don't use any path if conversion failed
+          }
+        } else {
+          // It's already a JPEG, use the path where multer saved it
+          console.log(`\x1b[32m[IMG]\x1b[0m File is already JPEG. Using as is: ${uploadedFilePath}`);
+          finalReceiptPathForDB = uploadedFilePath;
+        }
+
+        // If we have a valid path (either original JPEG or converted JPEG), process it for OpenAI
+        if (finalReceiptPathForDB && mimeType !== 'application/pdf') {
+          try {
+            base64ImageForHistoryAndProcessing = await fs.readFile(finalReceiptPathForDB, 'base64');
+            const imageMessageContent = [
+              { type: 'text', text: command ? `${command} - Image attached` : 'Process this image' },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64ImageForHistoryAndProcessing}` } },
+            ];
+            const userImageMessage = { role: 'user', content: imageMessageContent };
+            messagesToOpenAI.push(userImageMessage);
+
+          } catch (readErr) {
+            console.error('\x1b[31m[ERR]\x1b[0m Error reading processed image file for Base64 encoding:', readErr.message);
+            results.push({ success: false, error: `Failed to read image file: ${readErr.message}` });
+            finalReceiptPathForDB = null; // Can't use it if we can't read it
+          }
         }
       }
     }

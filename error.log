@@ -369,3 +369,165 @@
 2025-06-18T00:36:31.391Z [LOG] 18.06.2025, 02:36:31.391: Interpreting results for user summary...
 2025-06-18T00:36:32.924Z [LOG] 18.06.2025, 02:36:32.923: Interpreter summary: Added transaction for dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main on June 17, 2025, for a total of €2.70.
 2025-06-18T00:36:32.926Z [LOG] 18.06.2025, 02:36:32.926: [BOT] Response from API for photo for chatId 1931272012: "Added transaction for dm-drogerie markt, Riedbergplatz 2, Frankfurt am Main on June 17, 2025, for a total of €2.70."
+2025-06-18T00:44:04.006Z [LOG] 18.06.2025, 02:44:04.006: [BOT] Message from chatId 1931272012: "how many accounts do i have"
+2025-06-18T00:44:04.066Z [LOG] 18.06.2025, 02:44:04.065: [BOT] Attempting to POST to: http://100.91.174.117:3000/ai/natural
+2025-06-18T00:44:04.070Z [LOG] 18.06.2025, 02:44:04.069: Received command: how many accounts do i have
+2025-06-18T00:44:04.070Z [ERROR] FATAL: Failed to load database schema DDL: {}
+2025-06-18T00:44:04.070Z [LOG] 18.06.2025, 02:44:04.070: Sending command to OpenAI for action decision...
+2025-06-18T00:44:05.237Z [LOG] 18.06.2025, 02:44:05.237: 1. OpenAI Action Response: {
+  "role": "assistant",
+  "content": null,
+  "tool_calls": [
+    {
+      "id": "call_G26ourATYSFSmfCok4XIeIkz",
+      "type": "function",
+      "function": {
+        "name": "handle_natural_command",
+        "arguments": "{\"action\":\"execute_sql_query\",\"query\":\"SELECT COUNT(*) FROM accounts;\"}"
+      }
+    }
+  ],
+  "refusal": null,
+  "annotations": []
+}
+2025-06-18T00:44:05.238Z [LOG] 18.06.2025, 02:44:05.237: 1.a OpenAI Action Response Object {"role":"assistant","content":null,"tool_calls":[{"id":"call_G26ourATYSFSmfCok4XIeIkz","type":"function","function":{"name":"handle_natural_command","arguments":"{\"action\":\"execute_sql_query\",\"query\":\"SELECT COUNT(*) FROM accounts;\"}"}}],"refusal":null,"annotations":[]}
+2025-06-18T00:44:05.238Z [LOG] 18.06.2025, 02:44:05.238: Parsed Args {"action":"execute_sql_query","query":"SELECT COUNT(*) FROM accounts;"}
+2025-06-18T00:44:05.238Z [LOG] 18.06.2025, 02:44:05.238: AI Decision (Validated): {
+  "action": "execute_sql_query",
+  "query": "SELECT COUNT(*) FROM accounts;"
+}
+2025-06-18T00:44:05.238Z [LOG] 18.06.2025, 02:44:05.238: Executing step 1 with action: execute_sql_query
+2025-06-18T00:44:05.239Z [LOG] 18.06.2025, 02:44:05.239: Executing execute_sql_query
+2025-06-18T00:44:05.239Z [LOG] 18.06.2025, 02:44:05.239: SQL Query from AI: SELECT COUNT(*) FROM accounts;
+2025-06-18T00:44:05.241Z [LOG] 18.06.2025, 02:44:05.241: Results before serialization: [
+  {
+    "success": true,
+    "data": [
+      {
+        "COUNT(*)": 1
+      }
+    ],
+    "query": "SELECT COUNT(*) FROM accounts;",
+    "message": "SQL query executed."
+  }
+]
+2025-06-18T00:44:05.241Z [LOG] 18.06.2025, 02:44:05.241: Sanitized results for interpreter: [
+  {
+    "success": true,
+    "message": "SQL query executed.",
+    "error": null,
+    "event": null,
+    "data": [
+      {
+        "COUNT(*)": 1
+      }
+    ],
+    "query": "SELECT COUNT(*) FROM accounts;",
+    "url": null,
+    "company": null,
+    "details": null,
+    "migration_description": null,
+    "sql_statements": null,
+    "messages": null,
+    "total": null,
+    "result": null,
+    "message_id": null
+  }
+]
+2025-06-18T00:44:05.242Z [LOG] 18.06.2025, 02:44:05.241: Interpreting results for user summary...
+2025-06-18T00:44:05.894Z [LOG] 18.06.2025, 02:44:05.894: Interpreter summary: Query successful. There is 1 account in your database.
+2025-06-18T00:44:05.896Z [LOG] 18.06.2025, 02:44:05.896: [BOT] Response from API for chatId 1931272012: "Query successful. There is 1 account in your database."
+2025-06-18T00:45:08.342Z [LOG] 18.06.2025, 02:45:08.341: [BOT] Message from chatId 1931272012: "create a new savings account"
+2025-06-18T00:45:08.392Z [LOG] 18.06.2025, 02:45:08.392: [BOT] Attempting to POST to: http://100.91.174.117:3000/ai/natural
+2025-06-18T00:45:08.396Z [LOG] 18.06.2025, 02:45:08.395: Received command: create a new savings account
+2025-06-18T00:45:08.396Z [ERROR] FATAL: Failed to load database schema DDL: {}
+2025-06-18T00:45:08.396Z [LOG] 18.06.2025, 02:45:08.396: Sending command to OpenAI for action decision...
+2025-06-18T00:45:09.330Z [LOG] 18.06.2025, 02:45:09.330: 1. OpenAI Action Response: {
+  "role": "assistant",
+  "content": null,
+  "tool_calls": [
+    {
+      "id": "call_oRMj6OKDN2lLW0m1eKrISmGY",
+      "type": "function",
+      "function": {
+        "name": "handle_natural_command",
+        "arguments": "{\"action\":\"add_account\",\"account\":{\"name\":\"Savings Account\",\"description\":\"Personal savings account\",\"type\":\"savings\",\"balance\":0}}"
+      }
+    }
+  ],
+  "refusal": null,
+  "annotations": []
+}
+2025-06-18T00:45:09.331Z [LOG] 18.06.2025, 02:45:09.330: 1.a OpenAI Action Response Object {"role":"assistant","content":null,"tool_calls":[{"id":"call_oRMj6OKDN2lLW0m1eKrISmGY","type":"function","function":{"name":"handle_natural_command","arguments":"{\"action\":\"add_account\",\"account\":{\"name\":\"Savings Account\",\"description\":\"Personal savings account\",\"type\":\"savings\",\"balance\":0}}"}}],"refusal":null,"annotations":[]}
+2025-06-18T00:45:09.332Z [LOG] 18.06.2025, 02:45:09.331: Executing step 1 with action: add_account
+2025-06-18T00:45:09.332Z [LOG] 18.06.2025, 02:45:09.332: Executing add_account
+2025-06-18T00:45:09.331Z [LOG] 18.06.2025, 02:45:09.331: Parsed Args {"action":"add_account","account":{"name":"Savings Account","description":"Personal savings account","type":"savings","balance":0}}
+2025-06-18T00:45:09.331Z [LOG] 18.06.2025, 02:45:09.331: AI Decision (Validated): {
+  "action": "add_account",
+  "account": {
+    "name": "Savings Account",
+    "description": "Personal savings account",
+    "type": "savings",
+    "balance": 0
+  }
+}
+2025-06-18T00:45:09.376Z [LOG] 18.06.2025, 02:45:09.376: ✅ Created account: 2 (ID: 3)
+2025-06-18T00:45:09.376Z [LOG] 18.06.2025, 02:45:09.376: Results before serialization: [
+  {
+    "success": true,
+    "message": "Added account Savings Account"
+  },
+  {
+    "success": true,
+    "message": "Synced account to Firefly with ID [object Object]"
+  }
+]
+2025-06-18T00:45:09.377Z [LOG] 18.06.2025, 02:45:09.377: Sanitized results for interpreter: [
+  {
+    "success": true,
+    "message": "Added account Savings Account",
+    "error": null,
+    "event": null,
+    "data": null,
+    "query": null,
+    "url": null,
+    "company": null,
+    "details": null,
+    "migration_description": null,
+    "sql_statements": null,
+    "messages": null,
+    "total": null,
+    "result": null,
+    "message_id": null
+  },
+  {
+    "success": true,
+    "message": "Synced account to Firefly with ID [object Object]",
+    "error": null,
+    "event": null,
+    "data": null,
+    "query": null,
+    "url": null,
+    "company": null,
+    "details": null,
+    "migration_description": null,
+    "sql_statements": null,
+    "messages": null,
+    "total": null,
+    "result": null,
+    "message_id": null
+  }
+]
+2025-06-18T00:45:09.377Z [LOG] 18.06.2025, 02:45:09.377: Interpreting results for user summary...
+2025-06-18T00:45:10.304Z [LOG] 18.06.2025, 02:45:10.303: Interpreter summary: I’ve added your Savings Account and synced it to Firefly successfully.
+2025-06-18T00:45:10.306Z [LOG] 18.06.2025, 02:45:10.305: [BOT] Response from API for chatId 1931272012: "I’ve added your Savings Account and synced it to Firefly successfully."
+2025-06-18T00:50:21.681Z [LOG] 18.06.2025, 02:50:21.680: [BOT] Received unhandled message type from chatId 1931272012: {"message_id":806,"from":{"id":1931272012,"is_bot":false,"first_name":"baji","language_code":"de"},"chat":{"id":1931272012,"first_name":"baji","type":"private"},"date":1750207821,"document":{"file_name":"Receipt-2678-8340-5877.pdf","mime_type":"application/pdf","thumbnail":{"file_id":"AAMCBAADGQEAAgMmaFINTYS1C0PreyAov_13SJXjWg4AAvsgAAIyVZFSRajRRPTjX_IBAAdtAAM2BA","file_unique_id":"AQAD-yAAAjJVkVJy","file_size":12721,"width":320,"height":320},"thumb":{"file_id":"AAMCBAADGQEAAgMmaFINTYS1C0PreyAov_13SJXjWg4AAvsgAAIyVZFSRajRRPTjX_IBAAdtAAM2BA","file_unique_id":"AQAD-yAAAjJVkVJy","file_size":12721,"width":320,"height":320},"file_id":"BQACAgQAAxkBAAIDJmhSDU2EtQtD63sgKL_9d0iV41oOAAL7IAACMlWRUkWo0UT041_yNgQ","file_unique_id":"AgAD-yAAAjJVkVI","file_size":32756}}
+2025-06-18T00:54:22.374Z [LOG] 18.06.2025, 02:54:22.373: [SRV] Telegram logging bot initialized for admin chat.
+2025-06-18T00:54:22.383Z [LOG] 18.06.2025, 02:54:22.382: Open http://localhost:3000 or http://127.0.0.1:3000 in your browser if running locally.
+2025-06-18T00:54:22.382Z [LOG] 18.06.2025, 02:54:22.382: Server running on http://100.91.174.117:3000 (bound to 0.0.0.0:3000)
+2025-06-18T00:55:32.784Z [LOG] 18.06.2025, 02:55:32.784: [SRV] Telegram logging bot initialized for admin chat.
+2025-06-18T00:55:32.792Z [LOG] 18.06.2025, 02:55:32.792: Server running on http://100.91.174.117:3000 (bound to 0.0.0.0:3000)
+2025-06-18T00:55:32.792Z [LOG] 18.06.2025, 02:55:32.792: Open http://localhost:3000 or http://127.0.0.1:3000 in your browser if running locally.
+2025-06-18T00:56:47.814Z [LOG] 18.06.2025, 02:56:47.813: [SRV] Telegram logging bot initialized for admin chat.
+2025-06-18T00:56:47.821Z [LOG] 18.06.2025, 02:56:47.821: Server running on http://100.91.174.117:3000 (bound to 0.0.0.0:3000)
+2025-06-18T00:56:47.822Z [LOG] 18.06.2025, 02:56:47.821: Open http://localhost:3000 or http://127.0.0.1:3000 in your browser if running locally.
