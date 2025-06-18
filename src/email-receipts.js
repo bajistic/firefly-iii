@@ -281,6 +281,7 @@ Extract and return JSON with:
   "date": "YYYY-MM-DD",
   "total": number,
   "currency": "USD|EUR|CHF|etc",
+  "receipt_number": "receipt/invoice number (if found, null if not)",
   "items": [
     {
       "name": "item name",
@@ -301,6 +302,7 @@ Rules:
 - Use actual shop name from receipt, not email sender
 - Date should be transaction date, not email date
 - Total should be final amount paid
+- Receipt number: Look for invoice numbers, receipt numbers, order numbers, transaction IDs (e.g., "Invoice #12345", "Receipt: ABC123", "Order #99999")
 - Items should be individual products/services
 - Categories: groceries, dining, transportation, electronics, clothing, entertainment, health, services, utilities, other
 - If unclear, use reasonable defaults and lower confidence
@@ -348,6 +350,9 @@ async function createTransactionFromEmail(transactionData, receiptPath, emailInf
     }
     
     console.log(`🔄 Creating transaction: ${transactionData.shop} - ${transactionData.total} ${transactionData.currency}`);
+    if (transactionData.receipt_number) {
+      console.log(`📄 Receipt number: ${transactionData.receipt_number}`);
+    }
     
     // Create transaction using existing system
     const result = await createSyncedTransaction(
@@ -356,7 +361,8 @@ async function createTransactionFromEmail(transactionData, receiptPath, emailInf
       transactionData.currency || 'CHF',
       transactionData.date,
       receiptPath,
-      transactionData.items || []
+      transactionData.items || [],
+      transactionData.receipt_number
     );
     
     if (result.success) {
@@ -371,6 +377,18 @@ async function createTransactionFromEmail(transactionData, receiptPath, emailInf
       };
     } else {
       console.log(`❌ Failed to create transaction: ${result.error}`);
+      
+      // Handle duplicate detection specifically
+      if (result.isDuplicate) {
+        console.log(`🔄 Duplicate detected - skipping creation`);
+        return { 
+          success: false, 
+          error: result.error,
+          isDuplicate: true,
+          existingTransaction: result.existingTransaction
+        };
+      }
+      
       return { success: false, error: result.error };
     }
     

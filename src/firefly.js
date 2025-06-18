@@ -5,16 +5,37 @@ require('dotenv').config();
  * Simple transaction creation for the original finance database
  * No more Firefly III complications - just pure simplicity
  */
-async function createTransaction(shop, amount, currency = 'CHF', date = null, receiptPath = null, items = []) {
+async function createTransaction(shop, amount, currency = 'CHF', date = null, receiptPath = null, items = [], receiptNumber = null) {
   try {
     const transactionDate = date || new Date().toISOString().split('T')[0];
     const time = new Date().toTimeString().split(' ')[0];
     
+    // Check for duplicate transactions using receipt number
+    if (receiptNumber) {
+      const duplicateCheck = await dbAllAsync(`
+        SELECT id, shop, total, currency, date, receipt_number 
+        FROM transactions 
+        WHERE receipt_number = ? AND receipt_number IS NOT NULL
+      `, [receiptNumber]);
+      
+      if (duplicateCheck.length > 0) {
+        const duplicate = duplicateCheck[0];
+        console.log(`⚠️ Duplicate transaction detected! Receipt number ${receiptNumber} already exists`);
+        console.log(`   Existing: ${duplicate.shop} - ${duplicate.total} ${duplicate.currency} on ${duplicate.date} (ID: ${duplicate.id})`);
+        return {
+          success: false,
+          error: `Duplicate transaction detected. Receipt number ${receiptNumber} already processed.`,
+          isDuplicate: true,
+          existingTransaction: duplicate
+        };
+      }
+    }
+    
     // Create transaction in finance database
     const result = await dbRunAsync(`
-      INSERT INTO transactions (shop, date, time, total, currency, receipt_path, account_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [shop, transactionDate, time, amount, currency, receiptPath, 1]);
+      INSERT INTO transactions (shop, date, time, total, currency, receipt_path, account_id, receipt_number)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [shop, transactionDate, time, amount, currency, receiptPath, 1, receiptNumber]);
     
     const transactionId = result.lastID;
     
