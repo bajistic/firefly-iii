@@ -27,8 +27,9 @@ Available actions within 'handle_natural_command':
 6. Adding income (salary, freelance).
 7. Adding accounts (savings, cards).
 8. Executing SQL queries (for advanced data retrieval or modification).
-9. Scraping job listings from web pages.
-10. Gmail integration (send, list, read, modify emails).
+9. Processing receipt files from local filesystem (use 'process_receipt_file' for PDF/image files at specific paths).
+10. Scraping job listings from web pages.
+11. Gmail integration (send, list, read, modify emails).
 
 **Instructions:**
 - Parse commands and/or receipt data into JSON per schema.
@@ -162,6 +163,23 @@ Format your output as the arguments to the 'handle_natural_command' tool. Exampl
         "balance": 1000.00
       }
     }
+
+**For Processing Receipt Files:**
+- Keywords: "process receipt file," "analyze file at," "process file at," when referring to specific file paths without file upload.
+- Use ONLY when user provides a specific file path to an existing receipt file (not when uploading a new file).
+- Use when user says "process file at [path]" or "analyze receipt file at [path]".
+- DO NOT use when user uploads a file - use create_transaction instead.
+- Example commands that should use this action:
+  - "process receipt file at uploads/receipt.pdf"
+  - "analyze file at uploads/my-receipt.jpg"
+  - "process the receipt file uploads/grocery-receipt.pdf"
+- Example:
+    {
+      "action": "process_receipt_file",
+      "file_path": "uploads/receipt.pdf",
+      "description": "Process this grocery receipt"
+    }
+
 **For SQL Queries:**
 - Keywords: "query database," "select data," "find records," "delete from table."
 - Use this for direct database interaction when other actions are not specific enough or for complex retrieval.

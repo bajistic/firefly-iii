@@ -170,6 +170,13 @@ const SqlQueryActionSchema = z.object({
   query: z.string().describe("The SQL query to execute. Primarily for SELECT. Use other actions for INSERT/UPDATE/DELETE where possible. Exercise caution with DML statements."), // Simpler: payload directly in action
 });
 
+// Process Receipt File action
+const ProcessReceiptSchema = z.object({
+  action: z.literal('process_receipt_file'),
+  file_path: z.string().describe("Path to the receipt file to process (PDF, JPG, PNG, HEIC)"),
+  description: z.string().optional().default("Process this receipt").describe("Optional description of the receipt content"),
+});
+
 // Unified Actions Schema
 const UnifiedActionSchema = z.discriminatedUnion("action", [
   RespondSchema,
@@ -184,6 +191,7 @@ const UnifiedActionSchema = z.discriminatedUnion("action", [
   GetMessageSchema,
   ModifyMessageSchema,
   SqlQueryActionSchema,
+  ProcessReceiptSchema,
   ScrapeJobsSchema,
   FavoriteJobSchema,
 ]);
