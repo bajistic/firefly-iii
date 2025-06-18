@@ -6,10 +6,13 @@ A comprehensive personal finance management system with receipt scanning, detail
 
 ### 🤖 AI-Powered Receipt Processing
 - **Automatic receipt scanning** via Telegram or web interface
+- **Manual file processing** via natural language commands to Jarvis
+- **Automated email monitoring** with AI classification for 23+ vendors
 - **Intelligent text extraction** from images (HEIC, JPG, PNG, PDF)
 - **Item-level categorization** with quantity and price tracking
 - **Multi-currency support** (CHF, EUR, USD) with automatic conversion
 - **Smart duplicate detection** to prevent double entries
+- **Confidence scoring** with automatic processing for high-confidence results
 
 ### 📊 Custom Finance Dashboard
 - **Real-time spending analytics** with category breakdowns
@@ -68,7 +71,7 @@ A comprehensive personal finance management system with receipt scanning, detail
    docker exec jarvis-db-1 mariadb -u firefly -p'secret_firefly_password' -e "CREATE DATABASE IF NOT EXISTS finance;"
    
    # Initialize tables
-   node src/init-db.js
+   node src/migrations/init-db.js
    ```
 
 4. **Configure environment**
@@ -128,6 +131,19 @@ OPENAI_API_KEY=your_openai_key
 2. Upload receipt image or PDF
 3. AI processes and categorizes items
 4. Review and confirm transaction details
+
+#### Via Jarvis Natural Language
+1. Say: "process receipt file at uploads/receipt.pdf"
+2. Jarvis analyzes the existing file using the same AI pipeline
+3. High confidence results (≥60%) are automatically processed
+4. Low confidence results are flagged for manual review
+
+#### Automated Email Processing
+1. System monitors Gmail every 15 minutes
+2. Detects receipts from 23+ known vendors (Amazon, Uber, PayPal, etc.)
+3. AI classifies emails and extracts transaction data
+4. High confidence receipts are automatically processed
+5. Admin receives Telegram notifications for all activities
 
 ### Bank Statement Reconciliation
 

@@ -36,8 +36,10 @@ Under the hood, the assistant leverages OpenAI’s function-calling chat API, Go
 │   ├── prompts.js           # OpenAI system, interpreter, and cover-letter prompts
 │   ├── schemas.js           # JSON Schema for AI function-calling
 │   ├── zodschemas.js        # Zod schemas for runtime validation
-│   ├── init-db.js           # SQLite schema initialization
-│   ├── update-db.js         # SQLite migration helper
+│   ├── migrations/
+│   │   ├── init-db.js        # SQLite schema initialization
+│   │   ├── migrate-db.js     # SQLite migration scripts
+│   │   └── update-db.js      # SQLite migration helper
 │   └── public/              # Static client UI for Calendar testing
 │       └── index.html
 ├── package.json             # Node.js dependencies & scripts
@@ -70,11 +72,11 @@ PORT=3000
    ```
 2. Initialize the local SQLite database:
    ```bash
-   node src/init-db.js
+   node src/migrations/init-db.js
    ```
 3. (Optional) Apply migrations:
    ```bash
-   node src/update-db.js
+   node src/migrations/update-db.js
    ```
 4. Start the server:
    - Development (auto-restart): `npm run dev`
