@@ -1,6 +1,6 @@
-# 💰 AI Finance Assistant
+# 🤖 Jarvis - AI Personal Finance Assistant
 
-A comprehensive personal finance management system with receipt scanning, detailed expense tracking, AI-powered transaction processing, and bank statement reconciliation.
+A comprehensive personal finance management system with receipt scanning, detailed expense tracking, AI-powered transaction processing, bank statement reconciliation, and intelligent task execution.
 
 ## ✨ Features
 
@@ -57,7 +57,7 @@ A comprehensive personal finance management system with receipt scanning, detail
 1. **Clone the repository**
    ```bash
    git clone <your-repo-url>
-   cd ai-finance-assistant
+   cd jarvis
    ```
 
 2. **Install dependencies**
@@ -320,4 +320,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ for personal finance management**
+**Made with ❤️ for intelligent personal finance management**

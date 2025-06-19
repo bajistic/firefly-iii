@@ -1,6 +1,7 @@
 {
-  "name": "google-calendar-api",
+  "name": "jarvis",
   "version": "1.0.0",
+  "description": "AI-powered personal finance assistant with receipt scanning, expense tracking, and intelligent task execution",
   "main": "src/server.js",
   "scripts": {
     "start": "node --no-deprecation src/server.js",

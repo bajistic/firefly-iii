@@ -1,6 +1,6 @@
-# Claude AI Assistant Instructions
+# Jarvis AI Assistant Instructions
 
-This is a personal AI finance assistant with comprehensive receipt scanning, expense tracking, and bank statement reconciliation capabilities.
+This is Jarvis - a personal AI finance assistant with comprehensive receipt scanning, expense tracking, bank statement reconciliation, and intelligent task execution capabilities.
 
 ## System Architecture
 

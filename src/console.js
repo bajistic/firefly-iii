@@ -82,49 +82,21 @@ console.log = function () {
     return;
   }
 
-  // Get current date
-  const now = new Date();
-
-  // Format the timestamp in Europe/Zurich time (manually adjusting for timezone)
-  // Note: This is a simplified approach as JavaScript doesn't natively handle timezones well
-  const options = {
-    timeZone: 'Europe/Zurich',
-    hour12: false,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  };
-
-  // Get formatted date without milliseconds
-  let timestamp = now.toLocaleString('de-CH', options);
-
-  // Add milliseconds
-  const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
-  timestamp += `.${milliseconds}`;
-
-  // If the first argument is a string, prefix it with timestamp
-  if (typeof args[0] === 'string') {
-    args[0] = `[31m${timestamp}:[39m ` + args[0];
-  } else {
-    // If the first argument is not a string, add timestamp as a separate first argument
-    args.unshift(`[32m${timestamp}:[39m `);
-  }
-
-  // Call the original console.log with the modified arguments
+  // Call the original console.log with the unmodified arguments (no timestamp in console)
   originalLog.apply(console, args);
-  // Append to unified log file
+  
+  // Append to unified log file (with timestamp)
   writeToFile('LOG', args);
 };
 
 // Override console.error to also timestamp and write to log file
 console.error = function () {
   const args = Array.from(arguments);
-  // Call the original console.error
+  
+  // Call the original console.error (no timestamp in console)
   originalError.apply(console, args);
-  // Append to unified log file
+  
+  // Append to unified log file (with timestamp)
   writeToFile('ERROR', args);
 };
 

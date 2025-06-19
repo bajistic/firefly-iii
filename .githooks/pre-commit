@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Pre-commit hook to sync CLAUDE.md to AGENTS.md
+# Pre-commit hook to sync CLAUDE.md and AGENTS.md bidirectionally
 
 # Check if CLAUDE.md exists and has been modified
 if git diff --cached --name-only | grep -q "CLAUDE.md"; then
@@ -13,12 +13,33 @@ if git diff --cached --name-only | grep -q "CLAUDE.md"; then
     git add AGENTS.md
     
     echo "✅ AGENTS.md updated and staged for commit"
+    
+# Check if AGENTS.md exists and has been modified (but not CLAUDE.md)
+elif git diff --cached --name-only | grep -q "AGENTS.md"; then
+    echo "📋 AGENTS.md modified, syncing to CLAUDE.md..."
+    
+    # Copy AGENTS.md to CLAUDE.md
+    cp AGENTS.md CLAUDE.md
+    
+    # Add CLAUDE.md to the commit
+    git add CLAUDE.md
+    
+    echo "✅ CLAUDE.md updated and staged for commit"
+    
+# Initial creation if one doesn't exist
 elif [ -f "CLAUDE.md" ] && [ ! -f "AGENTS.md" ]; then
     # If AGENTS.md doesn't exist but CLAUDE.md does, create it
     echo "📋 Creating AGENTS.md from CLAUDE.md..."
     cp CLAUDE.md AGENTS.md
     git add AGENTS.md
     echo "✅ AGENTS.md created and staged for commit"
+    
+elif [ -f "AGENTS.md" ] && [ ! -f "CLAUDE.md" ]; then
+    # If CLAUDE.md doesn't exist but AGENTS.md does, create it
+    echo "📋 Creating CLAUDE.md from AGENTS.md..."
+    cp AGENTS.md CLAUDE.md
+    git add CLAUDE.md
+    echo "✅ CLAUDE.md created and staged for commit"
 fi
 
 exit 0
