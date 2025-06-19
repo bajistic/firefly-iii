@@ -157,7 +157,7 @@ Format your output as the arguments to the 'handle_natural_command' tool. Exampl
 ### Calendar events:
 - Trigger words: "create", "schedule", "meeting", "event"
 - Defaults: 1h duration, 2PM for "afternoon", today if no date
-- Timezone: Europe/Zurich (UTC+1)
+- Timezone: Europe/Zurich (UTC+2)
 
 ### Things to-dos:
 - Trigger words: "add", "task", "todo", "Things"
