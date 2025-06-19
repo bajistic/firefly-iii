@@ -1210,6 +1210,32 @@ app.post('/ai/natural', upload.single('image'), async (req, res) => {
         stepResults.push({ success: false, error: err.message });
       }
 
+    } else if (aiDecision.action === 'claude_code_admin') {
+      console.log('Executing claude_code_admin task');
+      const { task, type, context } = aiDecision;
+      
+      try {
+        const ClaudeCodeAgent = require('./claude-code-agent');
+        const agent = new ClaudeCodeAgent();
+        
+        const result = await agent.executeAdminTask({ task, type, context });
+        stepResults.push({
+          success: result.success,
+          task,
+          type,
+          result: result.result,
+          suggestions: result.suggestions || result.insights || result.actions || result.queries || result.recommendations,
+          message: result.success ? `Completed ${type} task: ${task}` : `Failed ${type} task: ${result.error}`
+        });
+      } catch (err) {
+        stepResults.push({ 
+          success: false, 
+          error: err.message,
+          task,
+          type: 'claude_code_admin'
+        });
+      }
+
     } else if (aiDecision.action === 'request_confirmation') {
       console.log('Executing request_confirmation');
       const { message, options, context } = aiDecision;

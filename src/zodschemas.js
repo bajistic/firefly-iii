@@ -212,6 +212,14 @@ const RequestConfirmationSchema = z.object({
   timeout: z.number().int().optional().default(300).describe("Timeout in seconds for user response"),
 });
 
+// Claude Code Administrative Tasks action
+const ClaudeCodeAdminSchema = z.object({
+  action: z.literal('claude_code_admin'),
+  task: z.string().describe("The administrative task to perform"),
+  type: z.enum(["file_management", "analysis", "maintenance", "reporting", "general"]).describe("Type of administrative task"),
+  context: z.record(z.any()).optional().describe("Additional context for the task"),
+});
+
 // Agentic Plan Step
 const PlanStepSchema = z.object({
   action: z.string().describe("Action to execute in this step"),
@@ -254,9 +262,10 @@ const UnifiedActionSchema = z.discriminatedUnion("action", [
   SearchGmailSchema,
   ProcessMultipleReceiptsSchema,
   RequestConfirmationSchema,
+  ClaudeCodeAdminSchema,
   ExecutePlanSchema,
 ]);
 
-module.exports = { UnifiedActionSchema };
+module.exports = { UnifiedActionSchema, ClaudeCodeAdminSchema };
 
 

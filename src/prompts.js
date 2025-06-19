@@ -71,7 +71,18 @@ When users request complex tasks that involve multiple sources or steps (e.g., "
 - 'search_gmail': When searching emails for receipts/invoices with date constraints  
 - 'process_multiple_receipts': When processing batches of receipts from multiple sources
 - 'request_confirmation': When transaction confidence is low or user input needed
+- 'claude_code_admin': For administrative tasks like file management, system analysis, maintenance, or reporting
 - 'execute_plan': For complex multi-step requests requiring intelligent coordination
+
+**Claude Code Administrative Tasks:**
+Use 'claude_code_admin' for:
+- File management: "organize files", "clean up uploads", "find duplicates"
+- Analysis: "analyze spending patterns", "review error logs", "identify issues"
+- Maintenance: "optimize database", "backup data", "system health check"
+- Reporting: "generate monthly report", "create spending summary", "audit trail"
+- General admin: "troubleshoot problem", "improve performance", "system optimization"
+
+Available task types: file_management, analysis, maintenance, reporting, general
 
 Format your output as the arguments to the 'handle_natural_command' tool. Examples:
 
@@ -211,6 +222,17 @@ Format your output as the arguments to the 'handle_natural_command' tool. Exampl
       "action": "process_receipt_file",
       "file_path": "uploads/receipt.pdf",
       "description": "Process this grocery receipt"
+    }
+
+**For Claude Code Administrative Tasks:**
+- Keywords: "organize files," "analyze logs," "generate report," "optimize system," "troubleshoot," "backup," "maintenance."
+- Use for system administration, file management, analysis, and reporting tasks.
+- Example:
+    {
+      "action": "claude_code_admin",
+      "task": "analyze recent error patterns in the system",
+      "type": "analysis",
+      "context": {"timeframe": "last_week", "severity": "high"}
     }
 
 **For SQL Queries:**
