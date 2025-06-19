@@ -305,4 +305,48 @@ When helping with this system:
 - `"show me examples"` → Displays executable commands with descriptions
 - Dynamic suggestions based on current data, recent activity, and system capabilities
 
+#### Command Inference System
+The system uses multiple layers to understand and suggest commands:
+
+**1. AI Prompt Engineering** (`src/prompts.js`)
+- Teaches AI to recognize help-seeking patterns and category specifications
+- Maps natural language to structured actions with parameters
+- Handles variations: "admin commands", "finance examples", "what can I do?"
+
+**2. Natural Language Processing**
+- **Intent Recognition**: Distinguishes between help requests vs execution commands
+- **Parameter Extraction**: "show me admin commands" → `category: "admin"`
+- **Context Awareness**: Understands implicit categories and user goals
+
+**3. Dynamic Command Generation** (`generateCommandSuggestions()`)
+- **Data-Driven Personalization**: Queries actual transaction history, file counts, spending patterns
+- **Contextual Adaptation**: Suggests relevant commands based on system state
+- **Smart Prioritization**: Most frequent merchants, top categories, urgent file counts
+
+**4. Personalization Examples**
+- **Frequent Merchant**: "show transactions from REWE" (based on your top shop)
+- **File Organization**: "organize 100+ files by date" (when file count > 50)
+- **Category Focus**: "spending by groceries category" (based on your top spending category)
+- **Urgency Indicators**: Highlights time-sensitive tasks like file cleanup
+
+**5. Category-Specific Suggestions**
+- **finance**: Transaction queries, spending analysis, merchant reports
+- **admin**: File management, system maintenance, backup operations
+- **receipts**: Receipt processing, email monitoring, batch operations
+- **reports**: Database queries, analytics, spending summaries
+- **all**: Mixed suggestions from all categories with smart prioritization
+
+**6. Execution vs Suggestion Detection**
+```javascript
+// Triggers suggestions:
+"what can I ask you?" → suggest_commands
+"admin examples" → suggest_commands(category="admin")
+
+// Triggers execution:
+"show recent transactions" → claude_code_admin(type="reporting")
+"organize files by date" → claude_code_admin(type="file_management")
+```
+
+The system continuously learns from your financial data and usage patterns to provide increasingly relevant and personalized command suggestions.
+
 Remember: This system now combines simplicity with intelligent agentic behavior and direct action execution - it can plan and execute complex multi-step tasks while maintaining user control, transparency, and safety through confirmation systems.
