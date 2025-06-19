@@ -220,6 +220,13 @@ const ClaudeCodeAdminSchema = z.object({
   context: z.record(z.any()).optional().describe("Additional context for the task"),
 });
 
+// Command Suggestions action
+const CommandSuggestionsSchema = z.object({
+  action: z.literal('suggest_commands'),
+  category: z.enum(["all", "finance", "admin", "receipts", "reports"]).optional().default("all").describe("Category of commands to suggest"),
+  count: z.number().optional().default(10).describe("Number of suggestions to return"),
+});
+
 // Agentic Plan Step
 const PlanStepSchema = z.object({
   action: z.string().describe("Action to execute in this step"),
@@ -263,9 +270,10 @@ const UnifiedActionSchema = z.discriminatedUnion("action", [
   ProcessMultipleReceiptsSchema,
   RequestConfirmationSchema,
   ClaudeCodeAdminSchema,
+  CommandSuggestionsSchema,
   ExecutePlanSchema,
 ]);
 
-module.exports = { UnifiedActionSchema, ClaudeCodeAdminSchema };
+module.exports = { UnifiedActionSchema, ClaudeCodeAdminSchema, CommandSuggestionsSchema };
 
 

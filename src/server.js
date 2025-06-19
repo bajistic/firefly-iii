@@ -1219,20 +1219,61 @@ app.post('/ai/natural', upload.single('image'), async (req, res) => {
         const agent = new ClaudeCodeAgent();
         
         const result = await agent.executeAdminTask({ task, type, context });
-        stepResults.push({
-          success: result.success,
-          task,
-          type,
-          result: result.result,
-          suggestions: result.suggestions || result.insights || result.actions || result.queries || result.recommendations,
-          message: result.success ? `Completed ${type} task: ${task}` : `Failed ${type} task: ${result.error}`
-        });
+        
+        // Handle confirmation requests from Claude Code agent
+        if (result.requiresConfirmation) {
+          stepResults.push({
+            success: true,
+            type: 'confirmation_request',
+            message: result.confirmationMessage,
+            context: {
+              agent_type: 'claude_code_admin',
+              original_task: task,
+              original_type: type,
+              confirmation_data: result
+            },
+            awaiting_response: true
+          });
+        } else {
+          stepResults.push({
+            success: result.success,
+            task,
+            type,
+            result: result.result,
+            data: result.data,
+            queryExecuted: result.queryExecuted,
+            suggestions: result.suggestions || result.insights || result.actions || result.queries || result.recommendations,
+            message: result.success ? `Completed ${type} task: ${task}` : `Failed ${type} task: ${result.error}`
+          });
+        }
       } catch (err) {
         stepResults.push({ 
           success: false, 
           error: err.message,
           task,
           type: 'claude_code_admin'
+        });
+      }
+
+    } else if (aiDecision.action === 'suggest_commands') {
+      console.log('Executing suggest_commands');
+      const { category, count } = aiDecision;
+      
+      try {
+        const suggestions = await generateCommandSuggestions(category, count);
+        stepResults.push({
+          success: true,
+          suggestions,
+          category,
+          count,
+          message: `Here are ${suggestions.length} command suggestions for category: ${category}`
+        });
+      } catch (err) {
+        stepResults.push({ 
+          success: false, 
+          error: err.message,
+          category,
+          type: 'suggest_commands'
         });
       }
 
@@ -1332,6 +1373,9 @@ app.post('/ai/natural', upload.single('image'), async (req, res) => {
       total: result.total || null,
       result: result.result || null,
       message_id: result.message_id || null,
+      suggestions: result.suggestions || null,
+      category: result.category || null,
+      count: result.count || null,
     })).filter(r => r !== null); // Filter out any null results
     console.log('Sanitized results for interpreter:', JSON.stringify(sanitizedResults, null, 2)); if (sanitizedResults.length === 0 && !(aiDecision.action === 'respond' && assistantResponseForHistory.content)) {
 
@@ -1788,6 +1832,183 @@ function updatePlanContext(context, action, result) {
       context.avg_confidence = totalConfidence / allProcessed.length;
     }
   }
+}
+
+// ===== COMMAND SUGGESTIONS GENERATOR =====
+
+async function generateCommandSuggestions(category = 'all', count = 10) {
+  console.log(`🔍 Generating ${count} command suggestions for category: ${category}`);
+  
+  // Get current data for personalized suggestions
+  const [recentTransactions, categoryStats, fileCount] = await Promise.all([
+    dbAllAsync('SELECT shop, COUNT(*) as visit_count FROM transactions WHERE date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY shop ORDER BY visit_count DESC LIMIT 5'),
+    dbAllAsync('SELECT category, COUNT(*) as item_count FROM items i JOIN transactions t ON i.transaction_id = t.id WHERE t.date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY category ORDER BY item_count DESC LIMIT 3'),
+    new Promise(resolve => {
+      require('fs').readdir('/home/bayarbileg/jarvis/uploads', (err, files) => {
+        resolve(err ? 0 : files.length);
+      });
+    })
+  ]);
+
+  // Base command templates
+  const commands = {
+    finance: [
+      {
+        command: "show recent transactions",
+        description: "Display your latest financial transactions with details",
+        category: "finance"
+      },
+      {
+        command: "category breakdown this month",
+        description: "See spending breakdown by category for current month",
+        category: "finance"
+      },
+      {
+        command: "top merchants this month",
+        description: "Show which stores you've spent the most at",
+        category: "finance"
+      },
+      {
+        command: "monthly spending report",
+        description: "Generate comprehensive monthly financial summary",
+        category: "finance"
+      },
+      {
+        command: "show transactions from " + (recentTransactions[0]?.shop || "REWE"),
+        description: `View all transactions from your frequent merchant`,
+        category: "finance",
+        personalized: true
+      }
+    ],
+    admin: [
+      {
+        command: "organize files by date",
+        description: "Sort receipt files into date-organized folders",
+        category: "admin"
+      },
+      {
+        command: "list files in uploads",
+        description: "Show all uploaded receipt and document files",
+        category: "admin"
+      },
+      {
+        command: "find duplicate files",
+        description: "Scan for duplicate receipts or documents",
+        category: "admin"
+      },
+      {
+        command: "backup uploads directory",
+        description: "Create timestamped backup of all receipt files",
+        category: "admin"
+      },
+      {
+        command: "analyze error log patterns",
+        description: "Review system logs for issues and insights",
+        category: "admin"
+      },
+      {
+        command: "clean old files older than 1 year",
+        description: "Remove old receipt files to save storage space",
+        category: "admin"
+      }
+    ],
+    receipts: [
+      {
+        command: "add all my Anthropic receipts from this week",
+        description: "Search and process all recent Anthropic receipts",
+        category: "receipts"
+      },
+      {
+        command: "find and process all grocery receipts from last month",
+        description: "Batch process grocery store receipts",
+        category: "receipts"
+      },
+      {
+        command: "search for receipts from " + (recentTransactions[0]?.shop || "REWE"),
+        description: "Find receipts from your frequent stores",
+        category: "receipts",
+        personalized: true
+      },
+      {
+        command: "check for new receipt emails",
+        description: "Manually trigger email receipt monitoring",
+        category: "receipts"
+      }
+    ],
+    reports: [
+      {
+        command: "show recent 20 transactions",
+        description: "Display your last 20 financial transactions",
+        category: "reports"
+      },
+      {
+        command: "spending by " + (categoryStats[0]?.category || "groceries") + " category",
+        description: "Analyze spending in your top category",
+        category: "reports",
+        personalized: true
+      },
+      {
+        command: "transactions this week",
+        description: "Show all transactions from the current week",
+        category: "reports"
+      },
+      {
+        command: "spending trends last 3 months",
+        description: "Analyze spending patterns over recent months",
+        category: "reports"
+      }
+    ]
+  };
+
+  // Add dynamic suggestions based on current state
+  if (fileCount > 50) {
+    commands.admin.unshift({
+      command: `organize ${fileCount} files by date`,
+      description: `You have ${fileCount} files that could be organized`,
+      category: "admin",
+      personalized: true,
+      urgent: true
+    });
+  }
+
+  // Select commands based on category
+  let selectedCommands = [];
+  if (category === 'all') {
+    selectedCommands = [
+      ...commands.finance.slice(0, 3),
+      ...commands.admin.slice(0, 2),
+      ...commands.receipts.slice(0, 2),
+      ...commands.reports.slice(0, 3)
+    ];
+  } else if (commands[category]) {
+    selectedCommands = commands[category];
+  } else {
+    selectedCommands = [...commands.finance, ...commands.admin];
+  }
+
+  // Add contextual suggestions
+  const contextualSuggestions = [
+    {
+      command: "what can I ask you?",
+      description: "Get more command suggestions and examples",
+      category: "help"
+    },
+    {
+      command: "show me dashboard data",
+      description: "Get real-time financial dashboard information",
+      category: "finance"
+    }
+  ];
+
+  selectedCommands = [...selectedCommands, ...contextualSuggestions];
+
+  // Limit to requested count and add metadata
+  return selectedCommands.slice(0, count).map((cmd, index) => ({
+    ...cmd,
+    id: index + 1,
+    executable: true,
+    estimatedTime: cmd.category === 'admin' ? '2-5 seconds' : '1-2 seconds'
+  }));
 }
 
 // Ensure 'uploads' directory exists

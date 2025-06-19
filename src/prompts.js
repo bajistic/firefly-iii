@@ -84,6 +84,14 @@ Use 'claude_code_admin' for:
 
 Available task types: file_management, analysis, maintenance, reporting, general
 
+**Command Suggestions:**
+Use 'suggest_commands' for:
+- Help requests: "what can I ask you?", "suggest commands", "show me examples"
+- Category-specific: "finance commands", "admin commands", "report examples"
+- General exploration: "what commands are available?", "give me ideas"
+
+Available categories: all, finance, admin, receipts, reports
+
 Format your output as the arguments to the 'handle_natural_command' tool. Examples:
 
 - General response:
@@ -233,6 +241,16 @@ Format your output as the arguments to the 'handle_natural_command' tool. Exampl
       "task": "analyze recent error patterns in the system",
       "type": "analysis",
       "context": {"timeframe": "last_week", "severity": "high"}
+    }
+
+**For Command Suggestions:**
+- Keywords: "what can I ask," "suggest commands," "show examples," "what commands," "give me ideas," "help."
+- Use when users want to discover available commands or need inspiration.
+- Example:
+    {
+      "action": "suggest_commands",
+      "category": "all",
+      "count": 10
     }
 
 **For SQL Queries:**

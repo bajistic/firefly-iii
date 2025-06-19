@@ -7,6 +7,7 @@ This is a personal AI finance assistant with comprehensive receipt scanning, exp
 ### Core Functionality
 - **AI-powered receipt processing** via Telegram and web interface
 - **Agentic multi-step task execution** with intelligent planning and fallbacks
+- **Claude Code administrative agent** with direct action execution and safety confirmations
 - **Simple finance database** with detailed item tracking
 - **Custom responsive dashboard** with real-time analytics
 - **Bank statement reconciliation** with PDF parsing and automatic matching
@@ -55,7 +56,7 @@ accounts: id, name, description, type, balance
 - **Interactive Review**: Approve/edit/ignore interface for discrepancies
 - **Batch Apply**: Update database with correct amounts and create missing transactions
 
-### 4. Agentic Task Execution (NEW)
+### 4. Agentic Task Execution
 - **Multi-step planning**: AI creates intelligent plans for complex requests
 - **Conditional execution**: Steps execute based on context and previous results
 - **Intelligent fallbacks**: Alternative approaches when primary methods fail
@@ -69,7 +70,30 @@ accounts: id, name, description, type, balance
 - `"find and process all Amazon receipts from last month"` → Date-range search + batch processing
 - `"search for any grocery receipts in the last 7 days"` → Pattern + time-based search
 
-### 5. Automated Email Monitoring
+### 5. Claude Code Administrative Agent (NEW)
+- **Direct Action Execution**: Performs file operations, database queries, and system analysis with real results
+- **Safety System**: Path restrictions, dangerous operation detection, and confirmation requirements
+- **File Management**: Organize files by date, find duplicates, backup directories, clean old files
+- **Database Reporting**: Execute SQL queries for spending analysis, category breakdowns, merchant reports
+- **System Analysis**: Error log analysis, performance monitoring, maintenance tasks
+- **Smart Parsing**: Recognizes executable tasks vs advisory guidance
+
+#### Administrative Task Types:
+- **file_management**: File organization, duplicate detection, backup operations
+- **analysis**: Log analysis, pattern detection, system insights
+- **maintenance**: Database optimization, system health checks, cleanup tasks
+- **reporting**: SQL-based reports, spending analytics, transaction summaries
+- **general**: Multi-purpose administrative tasks
+
+#### Example Administrative Commands:
+- `"organize files by date"` → Actually moves files into date-organized folders
+- `"show category breakdown this month"` → Executes SQL query with live spending data
+- `"list files in uploads"` → Real directory listing with file details
+- `"analyze error log patterns"` → Reviews actual system logs for insights
+- `"find duplicate files"` → Scans directories for duplicate detection
+- `"backup uploads directory"` → Creates timestamped backup copies
+
+### 6. Automated Email Monitoring
 - **Continuous monitoring**: Checks Gmail every 15 minutes for receipt emails
 - **Smart filtering**: 23+ known vendor patterns + subject line analysis
 - **AI classification**: Confidence-based processing (70%+ auto-process, <70% manual review)
@@ -97,6 +121,7 @@ accounts: id, name, description, type, balance
 - `search_gmail` - Search Gmail for receipts with attachment download
 - `process_multiple_receipts` - Batch process receipts from multiple sources
 - `request_confirmation` - Interactive user confirmation system
+- `claude_code_admin` - Administrative tasks with direct execution (file management, reporting, analysis, maintenance)
 
 ## User Workflow
 
@@ -264,4 +289,20 @@ When helping with this system:
 - `"find and process all Amazon receipts from last month"`
 - `"search for any grocery receipts in the last 7 days"`
 
-Remember: This system now combines simplicity with intelligent agentic behavior - it can plan and execute complex multi-step tasks while maintaining user control and transparency.
+### Claude Code Administrative Commands to Test
+- `"organize files by date"`
+- `"show category breakdown this month"`
+- `"list files in uploads"`
+- `"analyze error log patterns"`
+- `"find duplicate files"`
+- `"backup uploads directory"`
+- `"show recent transactions"`
+- `"top merchants this month"`
+- `"monthly spending report"`
+
+### Command Suggestions Feature
+- `"suggest commands"` or `"what can I ask you?"` → Returns personalized command suggestions
+- `"show me examples"` → Displays executable commands with descriptions
+- Dynamic suggestions based on current data, recent activity, and system capabilities
+
+Remember: This system now combines simplicity with intelligent agentic behavior and direct action execution - it can plan and execute complex multi-step tasks while maintaining user control, transparency, and safety through confirmation systems.
