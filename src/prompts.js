@@ -7,7 +7,7 @@ const getCurrentDateTime = () => {
 };
 
 
-const systemPromptTemplate = `
+const getSystemPrompt = () => `
 You are an AI assistant that converts natural language into structured JSON commands.
 Your primary tool is 'handle_natural_command'. You MUST use this tool for all responses.
 The arguments to 'handle_natural_command' MUST conform to the UnifiedActionSchema.
@@ -491,7 +491,8 @@ Examples:
 
 // Export the functions and constants
 module.exports = {
-  systemPromptTemplate,
+  getSystemPrompt,
+  systemPromptTemplate: getSystemPrompt, // Keep backward compatibility
   interpreterPrompt,
   coverLetterPrompt
 };

@@ -14,7 +14,7 @@ const util = require('util');
 const execPromise = util.promisify(exec);
 require('dotenv').config();
 const OpenAI = require('openai');
-const { systemPromptTemplate, interpreterPrompt, coverLetterPrompt } = require('./prompts');
+const { getSystemPrompt, interpreterPrompt, coverLetterPrompt } = require('./prompts');
 const { tools: toolsSchema, CoverLetterJsonSchema } = require('./schemas');
 const { zodToJsonSchema } = require('zod-to-json-schema');
 const { UnifiedActionSchema } = require('./zodschemas')
@@ -587,7 +587,7 @@ app.post('/ai/natural', upload.single('image'), async (req, res) => {
     if (CURRENT_DB_SCHEMA === "Schema not yet loaded." || CURRENT_DB_SCHEMA.startsWith("Error")) {
       await loadDbSchemaIntoPrompt();
     }
-    const populatedSystemPrompt = systemPromptTemplate.replace('{{DB_SCHEMA}}', CURRENT_DB_SCHEMA);
+    const populatedSystemPrompt = getSystemPrompt().replace('{{DB_SCHEMA}}', CURRENT_DB_SCHEMA);
 
     // Step 1: Construct messages for OpenAI, including history
     const messagesToOpenAI = [{ role: 'system', content: populatedSystemPrompt }];
